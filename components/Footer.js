@@ -33,7 +33,7 @@ export default function Footer({ home = false }) {
               <>
                 <Link href="/#faq">FAQ</Link>
                 <Link href="/#contact">Kontak</Link>
-                <a href="#">Syarat &amp; Ketentuan</a>
+                <a href="#">Disclaimer</a>
                 <a href="#">Kebijakan Privasi</a>
               </>
             ) : (
