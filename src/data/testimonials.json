@@ -1,0 +1,35 @@
+[
+  {
+    "id": "tst_msjyq74i_d17ef7",
+    "status": "success",
+    "name": "Brando Edward Rumbayan",
+    "telegram": "-",
+    "whatsapp": "-",
+    "productName": "FACEBOOK FRESH A2F ON - EMAIL AKSES",
+    "productPrice": 2500,
+    "quantity": 30,
+    "payment": "DANA",
+    "totalPrice": 75000,
+    "purchaseDate": "2026-08-06",
+    "imagePath": "storage/testimonials/tst_msjyq74i_d17ef7.jpg",
+    "image": "/api/media?path=storage%2Ftestimonials%2Ftst_msjyq74i_d17ef7.jpg",
+    "createdAt": "2026-08-08T05:58:22.098Z",
+    "updatedAt": "2026-08-08T05:58:22.098Z"
+  },
+  {
+    "id": "tst_msfuu1wo_e1c66e",
+    "status": "success",
+    "name": "Edward Rumbayan",
+    "telegram": "@guxxie",
+    "whatsapp": "-",
+    "productName": "FACEBOOK FRESH A2F ON - EMAIL AKSES",
+    "productPrice": 2500,
+    "quantity": 7,
+    "payment": "DANA",
+    "totalPrice": 17000,
+    "purchaseDate": "4 Agustus 2026",
+    "imagePath": "storage/testimonials/tst_msfuu1wo_e1c66e.jpg",
+    "createdAt": "2026-08-05T08:58:18.792Z",
+    "updatedAt": "2026-08-05T08:58:18.792Z"
+  }
+]

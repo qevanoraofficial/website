@@ -1,0 +1,724 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Product, TransactionTestimonial } from "@/types/catalog";
+
+type RevealProps = {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+};
+
+type StoreLink = {
+  title: string;
+  description: string;
+  href: string;
+  icon: ReactNode;
+};
+
+function Reveal({ children, className = "", delay = 0 }: RevealProps) {
+  const elementRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const element = elementRef.current;
+
+    if (!element || typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      {
+        threshold: 0.12,
+        rootMargin: "0px 0px -5% 0px",
+      },
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={elementRef}
+      style={{ transitionDelay: `${delay}ms` }}
+      className={`${className} transform-gpu transition-[opacity,transform,filter] duration-700 ease-out motion-reduce:translate-y-0 motion-reduce:opacity-100 motion-reduce:blur-none ${
+        isVisible
+          ? "translate-y-0 opacity-100 blur-none"
+          : "translate-y-7 opacity-0 blur-[2px]"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function formatRupiah(value: number | undefined): string {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0);
+}
+
+function shortText(product: Product): string {
+  const text = String(
+    product.shortDescription || product.description || "",
+  ).trim();
+
+  return text || "Produk digital pilihan dari QEVANORA OFFICIAL.";
+}
+
+function IconBox({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-500 dark:bg-brand-500/10 dark:text-brand-400">
+      {children}
+    </span>
+  );
+}
+
+const quickLinks: StoreLink[] = [
+  {
+    title: "Produk",
+    description: "Temukan produk digital sesuai kebutuhanmu.",
+    href: "#produk-terbaru",
+    icon: (
+      <svg
+        width="25"
+        height="25"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5v-9Z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path
+          d="m4.4 7.7 7.6 4.2 7.6-4.2M12 12v8.5"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    title: "Testimoni",
+    description: "Lihat bukti transaksi dari pelanggan.",
+    href: "/testimonials",
+    icon: (
+      <svg
+        width="25"
+        height="25"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M5 5.5h14v10H9l-4 3v-13Z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M9 9h6M9 12h4"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    title: "Support",
+    description: "Hubungi layanan bantuan resmi QEVANORA OFFICIAL.",
+    href: "/support",
+    icon: (
+      <svg
+        width="25"
+        height="25"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M4 13v-2a8 8 0 0 1 16 0v2"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <path
+          d="M4 13h3v5H5.5A1.5 1.5 0 0 1 4 16.5V13ZM20 13h-3v5h1.5a1.5 1.5 0 0 0 1.5-1.5V13ZM17 19c-.7 1.2-2.1 2-4 2"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    title: "Privasi",
+    description: "Pelajari cara data pelanggan dilindungi.",
+    href: "/privacy",
+    icon: (
+      <svg
+        width="25"
+        height="25"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 3 5 6v5c0 4.7 2.8 8 7 10 4.2-2 7-5.3 7-10V6l-7-3Z"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12 9v4M12 16h.01"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+  {
+    title: "Disclaimer",
+    description: "Baca ketentuan dan batasan layanan.",
+    href: "/disclaimer",
+    icon: (
+      <svg
+        width="25"
+        height="25"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+          stroke="currentColor"
+          strokeWidth="1.8"
+        />
+        <path
+          d="M12 8v5M12 16h.01"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+      </svg>
+    ),
+  },
+];
+
+const benefits = [
+  {
+    title: "Proses Praktis",
+    description: "Pilih produk, kirim order, lalu pantau statusnya.",
+  },
+  {
+    title: "Transaksi Transparan",
+    description: "Harga dan stok produk ditampilkan dengan jelas.",
+  },
+  {
+    title: "Dukungan Resmi",
+    description: "Bantuan tersedia melalui WhatsApp dan Telegram resmi.",
+  },
+];
+
+const marqueeText =
+  "Percayakan kebutuhan digital Anda kepada QEVANORA OFFICIAL — solusi belanja produk digital yang terpercaya, berkualitas, dan siap memberikan pengalaman terbaik bagi setiap pelanggan.";
+
+const trustMarqueeItems = [
+  "Aman",
+  "Cepat",
+  "Praktis",
+  "Harga transparan",
+  "Status order",
+  "Support resmi",
+];
+
+type AnimatedStoreIntroProps = {
+  initialProducts: Product[];
+  initialTestimonials: TransactionTestimonial[];
+};
+
+export default function AnimatedStoreIntro({
+  initialProducts,
+  initialTestimonials,
+}: AnimatedStoreIntroProps) {
+  const products = useMemo(
+    () =>
+      initialProducts
+        .filter(
+          (product) =>
+            product.active !== false &&
+            Boolean(product.id) &&
+            Boolean(product.name) &&
+            Boolean(product.category),
+        )
+        .sort(
+          (first, second) =>
+            new Date(second.createdAt || 0).getTime() -
+            new Date(first.createdAt || 0).getTime(),
+        ),
+    [initialProducts],
+  );
+
+  const categories = useMemo(() => {
+    const map = new Map<string, string>();
+
+    products.forEach((product) => {
+      if (product.category && product.categoryName) {
+        map.set(product.category, product.categoryName);
+      }
+    });
+
+    return Array.from(map.entries()).map(([slug, name]) => ({
+      slug,
+      name,
+    }));
+  }, [products]);
+
+  const testimonials = useMemo(
+    () =>
+      initialTestimonials
+        .filter(
+          (testimonial) =>
+            Boolean(testimonial.id) &&
+            Boolean(testimonial.name) &&
+            Boolean(testimonial.productName),
+        )
+        .sort(
+          (first, second) =>
+            new Date(second.createdAt || 0).getTime() -
+            new Date(first.createdAt || 0).getTime(),
+        ),
+    [initialTestimonials],
+  );
+
+  const latestProducts = products.slice(0, 4);
+  const latestTestimonials = testimonials.slice(0, 3);
+
+  return (
+    <main className="relative isolate w-full min-w-0 max-w-full overflow-x-clip pb-6">
+      <style>{`
+        @keyframes qevanoraTrustScrollLeft {
+          from { transform: translate3d(0, 0, 0); }
+          to { transform: translate3d(-50%, 0, 0); }
+        }
+
+        .qevanora-marquee-track,
+        .qevanora-trust-track {
+          display: flex;
+          flex: none;
+          width: max-content;
+          max-width: none;
+          white-space: nowrap;
+          animation: qevanoraTrustScrollLeft 14s linear infinite;
+          will-change: transform;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .qevanora-marquee-track,
+          .qevanora-trust-track {
+            animation-duration: 60s;
+          }
+        }
+      `}</style>
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -left-28 top-10 h-72 w-72 rounded-full bg-blue-light-500/10 blur-3xl dark:bg-blue-light-500/10" />
+        <div className="absolute -right-24 top-[28rem] h-80 w-80 rounded-full bg-brand-500/10 blur-3xl dark:bg-brand-500/10" />
+      </div>
+
+      <Reveal>
+        <section className="relative w-full min-w-0 max-w-full overflow-hidden py-6 sm:py-10 lg:py-14">
+
+          <div className="grid w-full min-w-0 max-w-full items-center gap-10 md:gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-14">
+            <div className="w-full min-w-0 max-w-full overflow-hidden lg:pr-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-600 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-brand-400">
+                <span className="h-2 w-2 rounded-full bg-success-500 motion-safe:animate-pulse" />
+                Produk digital terpercaya
+              </span>
+
+              <h1 className="mt-5 max-w-2xl text-3xl font-bold leading-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">
+                QEVANORA OFFICIAL
+              </h1>
+
+              <p className="mt-5 max-w-xl break-words text-sm leading-7 text-gray-600 dark:text-gray-300 sm:text-base">
+                menyediakan berbagai produk digital terpercaya dengan proses transaksi yang cepat, mudah, dan aman. Kami berkomitmen untuk memberikan pelayanan terbaik, kualitas produk yang terjamin, serta harga kompetitif yang tetap terjangkau untuk semua kalangan.
+              </p>
+
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="#produk-terbaru"
+                  className="inline-flex items-center justify-center rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-theme-sm transition hover:bg-brand-600"
+                >
+                  Lihat Produk
+                </a>
+
+                <Link
+                  href="/testimonials"
+                  className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-white/[0.04]"
+                >
+                  Lihat Testimoni
+                </Link>
+              </div>
+
+              <div style={{ contain: "inline-size" }} className="mt-7 w-full min-w-0 max-w-full overflow-hidden border-y border-brand-500/20 py-3">
+                <div className="qevanora-marquee-track">
+                  <span className="inline-flex shrink-0 items-center gap-3 px-8 text-sm font-medium text-gray-600 dark:text-gray-300">
+                    <span className="text-brand-500">✦</span>
+                    {marqueeText}
+                  </span>
+                  <span aria-hidden="true" className="inline-flex shrink-0 items-center gap-3 px-8 text-sm font-medium text-gray-600 dark:text-gray-300">
+                    <span className="text-brand-500">✦</span>
+                    {marqueeText}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative mx-auto w-full min-w-0 max-w-2xl overflow-hidden lg:max-w-xl">
+              <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(194,149,51,0.18),transparent_68%)] blur-2xl" />
+
+              <div className="relative w-full min-w-0 max-w-full overflow-hidden">
+                <div className="w-full min-w-0 max-w-full overflow-hidden">
+                  <Image
+                    src="/images/logo/digie-store-home.png"
+                    alt="Banner QEVANORA OFFICIAL"
+                    width={1536}
+                    height={1024}
+                    priority
+                    className="block h-auto w-full max-w-full object-contain"
+                  />
+                </div>
+
+                <div style={{ contain: "inline-size" }} className="mt-5 w-full min-w-0 max-w-full overflow-hidden border-y border-brand-500/20 py-2.5">
+                  <div className="qevanora-trust-track">
+                    {["primary", "duplicate"].map((sequence) => (
+                      <div
+                        key={sequence}
+                        aria-hidden={sequence === "duplicate" ? true : undefined}
+                        className="flex shrink-0 items-center gap-5 pr-5"
+                      >
+                        {trustMarqueeItems.map((item) => (
+                          <span
+                            key={`${sequence}-${item}`}
+                            className="inline-flex shrink-0 items-center gap-2 px-4 py-2 text-xs font-semibold text-[#f0dfad] sm:text-sm"
+                          >
+                            <Image
+                              src="/images/icons/done-all.svg"
+                              alt=""
+                              width={18}
+                              height={18}
+                              aria-hidden="true"
+                              unoptimized
+                              className="h-[18px] w-[18px] shrink-0 object-contain"
+                            />
+                            <span>{item}</span>
+                          </span>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal className="mt-5" delay={80}>
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          {benefits.map((benefit, index) => (
+            <article
+              key={benefit.title}
+              className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
+            >
+              <div className="flex items-start gap-4">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-bold text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                  0{index + 1}
+                </span>
+                <div>
+                  <h2 className="font-semibold text-gray-800 dark:text-white/90">
+                    {benefit.title}
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                    {benefit.description}
+                  </p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </section>
+      </Reveal>
+
+      <Reveal className="mt-10" delay={100}>
+        <section>
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-brand-500">
+                Jelajahi QEVANORA OFFICIAL
+              </p>
+              <h2 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                Semua kebutuhan dalam satu tempat
+              </h2>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            {quickLinks.map((item) => (
+              <Link
+                key={item.title}
+                href={item.href}
+                className="group rounded-2xl border border-gray-200 bg-white p-5 transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-theme-md dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-500/40"
+              >
+                <IconBox>{item.icon}</IconBox>
+                <h3 className="mt-4 font-semibold text-gray-800 group-hover:text-brand-500 dark:text-white/90">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                  {item.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </Reveal>
+
+      {categories.length > 0 && (
+        <Reveal className="mt-10" delay={120}>
+          <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-sm font-semibold text-brand-500">
+                  Kategori produk
+                </p>
+                <h2 className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+                  Pilih kategori yang kamu butuhkan
+                </h2>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <Link
+                    key={category.slug}
+                    href={`/products/${category.slug}`}
+                    className="rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10 dark:hover:text-brand-400"
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        </Reveal>
+      )}
+
+      <Reveal className="mt-10" delay={140}>
+        <section id="produk-terbaru" className="scroll-mt-24">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-brand-500">
+                Produk terbaru
+              </p>
+              <h2 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+                Pilihan produk digital untukmu
+              </h2>
+            </div>
+          </div>
+
+          {latestProducts.length > 0 ? (
+            <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              {latestProducts.map((product) => (
+                <article
+                  key={product.id}
+                  className="group overflow-hidden rounded-2xl border border-gray-200 bg-white transition hover:-translate-y-1 hover:shadow-theme-md dark:border-gray-800 dark:bg-white/[0.03]"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-800">
+                    <Image
+                      src={
+                        product.image ||
+                        "/images/products/product-placeholder.svg"
+                      }
+                      alt={`Gambar ${product.name}`}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
+                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                    />
+                  </div>
+
+                  <div className="p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="truncate text-xs font-semibold text-brand-500">
+                        {product.categoryName || "Produk Digital"}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                        Stok {Number(product.stock) || 0}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-3 line-clamp-2 text-lg font-semibold text-gray-800 dark:text-white/90">
+                      {product.name}
+                    </h3>
+
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-gray-500 dark:text-gray-400">
+                      {shortText(product)}
+                    </p>
+
+                    <p className="mt-4 text-lg font-bold text-gray-900 dark:text-white">
+                      {formatRupiah(product.price)}
+                    </p>
+
+                    <Link
+                      href={`/products/${product.category}/${product.id}`}
+                      className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-600"
+                    >
+                      Detail Produk
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-dashed border-gray-300 bg-white px-5 py-12 text-center dark:border-gray-700 dark:bg-white/[0.03]">
+              <h3 className="font-semibold text-gray-800 dark:text-white/90">
+                Produk sedang disiapkan
+              </h3>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Produk terbaru akan tampil otomatis setelah ditambahkan.
+              </p>
+            </div>
+          )}
+        </section>
+      </Reveal>
+
+      <Reveal className="mt-10" delay={160}>
+        <section className="overflow-hidden rounded-3xl border border-gray-200 bg-gray-950 px-5 py-7 text-white dark:border-gray-800 sm:px-8 sm:py-9">
+          <div className="grid gap-7 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
+            <div>
+              <p className="text-sm font-semibold text-blue-light-400">
+                Bukti transaksi
+              </p>
+              <h2 className="mt-2 text-2xl font-bold">
+                Belanja lebih yakin dengan testimoni pelanggan.
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-gray-300">
+                Lihat riwayat transaksi sukses yang sudah ditampilkan di
+                halaman Testimoni.
+              </p>
+              <Link
+                href="/testimonials"
+                className="mt-5 inline-flex items-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-100"
+              >
+                Lihat Semua Testimoni
+              </Link>
+            </div>
+
+            {latestTestimonials.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                {latestTestimonials.map((testimonial, index) => (
+                  <article
+                    key={testimonial.id || `${testimonial.name}-${index}`}
+                    className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-success-400">
+                        ✓ TRANSAKSI SUKSES
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+                    <h3 className="mt-3 line-clamp-1 font-semibold">
+                      {testimonial.productName}
+                    </h3>
+                    <p className="mt-1 line-clamp-1 text-sm text-gray-400">
+                      {testimonial.name}
+                    </p>
+                    <p className="mt-3 text-sm font-semibold text-white">
+                      {formatRupiah(testimonial.totalPrice)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-gray-300">
+                Testimoni pelanggan akan tampil otomatis di bagian ini.
+              </div>
+            )}
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal className="mt-10" delay={180}>
+        <section className="rounded-3xl border border-brand-200 bg-gradient-to-br from-brand-50 to-blue-light-50 p-6 dark:border-brand-500/20 dark:from-brand-500/10 dark:to-blue-light-500/5 sm:p-8">
+          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+            <div className="max-w-2xl">
+              <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">
+                Butuh bantuan?
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+                Tim QEVANORA OFFICIAL siap membantu kebutuhanmu.
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-gray-600 dark:text-gray-300">
+                Hubungi kontak resmi kami untuk pertanyaan produk, order, atau
+                bantuan transaksi.
+              </p>
+            </div>
+
+            <Link
+              href="/support"
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-600"
+            >
+              Hubungi Support
+            </Link>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal className="mt-10" delay={200}>
+        <footer className="border-t border-gray-200 py-7 text-center dark:border-gray-800">
+          <p className="text-sm font-medium leading-7 text-gray-500 dark:text-gray-400">
+            © 2026 QEVANORA OFFICIAL. All Rights Reserved. Made with ❤️ in QEVANORA OFFICIAL
+          </p>
+          <div className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs font-medium text-gray-400">
+            <Link href="/privacy" className="hover:text-brand-500">
+              Kebijakan Privasi
+            </Link>
+            <Link href="/disclaimer" className="hover:text-brand-500">
+              Disclaimer
+            </Link>
+            <Link href="/support" className="hover:text-brand-500">
+              Support
+            </Link>
+          </div>
+        </footer>
+      </Reveal>
+    </main>
+  );
+}

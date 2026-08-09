@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2026-08-07",
+    "visitors": 4,
+    "guests": 2,
+    "members": 2,
+    "updatedAt": "2026-08-07T12:11:36.783Z"
+  },
+  {
+    "date": "2026-08-08",
+    "visitors": 8,
+    "guests": 5,
+    "members": 3,
+    "updatedAt": "2026-08-08T16:15:21.435Z"
+  },
+  {
+    "date": "2026-08-09",
+    "visitors": 16,
+    "guests": 13,
+    "members": 3,
+    "updatedAt": "2026-08-09T12:31:55.046Z"
+  }
+]
