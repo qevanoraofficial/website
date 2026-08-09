@@ -53,7 +53,7 @@ function Reveal({ children, className = "", delay = 0 }: RevealProps) {
     <div
       ref={elementRef}
       style={{ transitionDelay: `${delay}ms` }}
-      className={`${className} transform-gpu transition-[opacity,transform,filter] duration-700 ease-out motion-reduce:translate-y-0 motion-reduce:opacity-100 motion-reduce:blur-none ${
+      className={`${className} qev-home-reveal transform-gpu transition-[opacity,transform,filter] duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:translate-y-0 motion-reduce:opacity-100 motion-reduce:blur-none ${
         isVisible
           ? "translate-y-0 opacity-100 blur-none"
           : "translate-y-7 opacity-0 blur-[2px]"
@@ -358,12 +358,12 @@ export default function AnimatedStoreIntro({
 
           <div className="grid w-full min-w-0 max-w-full items-center gap-10 md:gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-14">
             <div className="w-full min-w-0 max-w-full overflow-hidden lg:pr-2">
-              <span className="qevanora-kicker inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-brand-300">
+              <span className="qevanora-kicker qev-kicker-float inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-brand-300">
                 <span className="h-2 w-2 rounded-full bg-success-500 motion-safe:animate-pulse" />
                 Produk digital terpercaya
               </span>
 
-              <h1 className="qevanora-title-metallic mt-5 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
+              <h1 className="qevanora-title-metallic qev-title-shine mt-5 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
                 QEVANORA OFFICIAL
               </h1>
 
@@ -405,7 +405,7 @@ export default function AnimatedStoreIntro({
               <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(214,166,47,0.18),transparent_68%)] blur-2xl" />
 
               <div className="relative w-full min-w-0 max-w-full overflow-hidden">
-                <div className="qevanora-hero-frame w-full min-w-0 max-w-full overflow-hidden">
+                <div className="qevanora-hero-frame qev-hero-float w-full min-w-0 max-w-full overflow-hidden">
                   <Image
                     src="/images/logo/digie-store-home.png"
                     alt="Banner QEVANORA OFFICIAL"

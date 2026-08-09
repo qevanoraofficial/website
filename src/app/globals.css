@@ -1055,3 +1055,271 @@ video,
 canvas {
   max-width: 100%;
 }
+
+/* --------------------------------------------------------------------------
+   QEVANORA motion layer
+   Motion-only enhancement inspired by the smooth, lively interaction rhythm
+   requested for the site. It does not change copy, layout, or brand palette.
+   -------------------------------------------------------------------------- */
+:root {
+  --qev-scroll-progress: 0;
+  --qev-motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes qev-page-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes qev-orbit-drift {
+  0% { transform: translate3d(-1.2%, -0.8%, 0) rotate(0deg) scale(1.02); }
+  50% { transform: translate3d(1.4%, 1.1%, 0) rotate(3deg) scale(1.045); }
+  100% { transform: translate3d(-1.2%, -0.8%, 0) rotate(0deg) scale(1.02); }
+}
+
+@keyframes qev-star-breathe {
+  0%, 100% { opacity: 0.22; filter: brightness(0.85); }
+  50% { opacity: 0.48; filter: brightness(1.22); }
+}
+
+@keyframes qev-ambient-drift-a {
+  0%, 100% { transform: translate3d(-8%, -5%, 0) scale(0.92); }
+  50% { transform: translate3d(12%, 10%, 0) scale(1.08); }
+}
+
+@keyframes qev-ambient-drift-b {
+  0%, 100% { transform: translate3d(8%, 8%, 0) scale(1.04); }
+  50% { transform: translate3d(-11%, -9%, 0) scale(0.94); }
+}
+
+@keyframes qev-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0.001deg); }
+  50% { transform: translate3d(0, -9px, 0) rotate(0.001deg); }
+}
+
+@keyframes qev-kicker-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes qev-title-shimmer {
+  0%, 28% { background-position: 0% 50%; }
+  62%, 100% { background-position: 100% 50%; }
+}
+
+@keyframes qev-logo-breathe {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(45, 156, 255, 0)); transform: translateZ(0) scale(1); }
+  50% { filter: drop-shadow(0 0 12px rgba(45, 156, 255, 0.24)); transform: translateZ(0) scale(1.025); }
+}
+
+@keyframes qev-card-sheen {
+  0%, 70% { transform: translate3d(-160%, 0, 0) skewX(-18deg); opacity: 0; }
+  76% { opacity: 0.25; }
+  92%, 100% { transform: translate3d(360%, 0, 0) skewX(-18deg); opacity: 0; }
+}
+
+@keyframes qev-hero-pan {
+  0%, 100% { transform: scale(1.002) translate3d(0, 0, 0); }
+  50% { transform: scale(1.025) translate3d(0, -2px, 0); }
+}
+
+.qev-page-enter {
+  animation: qev-page-enter 420ms ease-out both;
+}
+
+.qev-scroll-progress {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 999999;
+  width: 100%;
+  height: 2px;
+  pointer-events: none;
+  transform: scaleX(var(--qev-scroll-progress));
+  transform-origin: left center;
+  background: linear-gradient(90deg, #0877d9 0%, #2d9cff 38%, #f7d56e 74%, #d6a62f 100%);
+  box-shadow: 0 0 12px rgba(247, 213, 110, 0.48);
+  transition: transform 70ms linear;
+}
+
+.qev-ambient {
+  position: fixed;
+  z-index: -1;
+  width: min(52vw, 680px);
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  pointer-events: none;
+  will-change: transform;
+  filter: blur(78px);
+  opacity: 0.16;
+}
+
+.qev-ambient-one {
+  left: -20vw;
+  top: 7vh;
+  background: radial-gradient(circle, rgba(45, 156, 255, 0.72) 0%, rgba(8, 119, 217, 0.18) 45%, transparent 72%);
+  animation: qev-ambient-drift-a 16s ease-in-out infinite;
+}
+
+.qev-ambient-two {
+  right: -24vw;
+  bottom: -16vh;
+  background: radial-gradient(circle, rgba(247, 213, 110, 0.48) 0%, rgba(214, 166, 47, 0.12) 48%, transparent 72%);
+  animation: qev-ambient-drift-b 19s ease-in-out infinite;
+}
+
+/* The existing orbit/star artwork now moves instead of remaining static. */
+.qev-motion-ready body::before {
+  animation: qev-orbit-drift 18s ease-in-out infinite, qev-star-breathe 7s ease-in-out infinite;
+  transform-origin: 70% 20%;
+  will-change: transform, opacity;
+}
+
+/* Scroll-in reveal used throughout customer and admin pages. */
+.qev-motion-ready .qev-scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0) scale(0.985);
+  filter: blur(3px);
+  transition:
+    opacity 760ms var(--qev-motion-ease) var(--qev-reveal-delay, 0ms),
+    transform 820ms var(--qev-motion-ease) var(--qev-reveal-delay, 0ms),
+    filter 700ms ease-out var(--qev-reveal-delay, 0ms);
+  will-change: transform, opacity, filter;
+}
+
+.qev-motion-ready .qev-scroll-reveal.qev-in-view {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
+}
+
+.qev-home-reveal {
+  will-change: opacity, transform, filter;
+}
+
+.qev-kicker-float {
+  animation: qev-kicker-float 4.8s ease-in-out infinite;
+}
+
+.qev-title-shine {
+  background-size: 220% 100% !important;
+  animation: qev-title-shimmer 7.5s ease-in-out infinite;
+}
+
+.qev-hero-float {
+  animation: qev-float 6.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.qev-hero-float img {
+  animation: qev-hero-pan 11s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Brand marks have a very small breathing glow, matching the animated page rhythm. */
+header .qevanora-brand-mark,
+aside .qevanora-brand-mark,
+header img[src*="digie-store-icon"],
+aside img[src*="digie-store-icon"] {
+  animation: qev-logo-breathe 5.5s ease-in-out infinite;
+}
+
+/* Buttons: smooth lift, shine and tactile press. */
+.qevanora-gold-button,
+.qevanora-blue-button,
+.bg-brand-500,
+button,
+a.rounded-xl {
+  transition-property: transform, box-shadow, border-color, background-color, color, filter, opacity !important;
+  transition-duration: 260ms !important;
+  transition-timing-function: var(--qev-motion-ease) !important;
+}
+
+.qevanora-gold-button:hover,
+.qevanora-blue-button:hover {
+  transform: translateY(-3px) scale(1.012);
+}
+
+.qevanora-gold-button:active,
+.qevanora-blue-button:active,
+button:active,
+a.rounded-xl:active {
+  transform: translateY(0) scale(0.975) !important;
+  transition-duration: 100ms !important;
+}
+
+/* Cards gain a soft IT-style lift and moving light sweep without changing layout. */
+.qevanora-card,
+.qev-motion-ready main article {
+  transform-style: preserve-3d;
+  transition:
+    transform 420ms var(--qev-motion-ease),
+    border-color 320ms ease,
+    box-shadow 420ms var(--qev-motion-ease),
+    filter 320ms ease !important;
+}
+
+.qevanora-card::after {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -18%;
+  width: 22%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.42), transparent);
+  filter: blur(3px);
+  transform: translate3d(-160%, 0, 0) skewX(-18deg);
+  animation: qev-card-sheen 8.5s ease-in-out infinite;
+  opacity: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .qevanora-card:hover,
+  .qev-motion-ready main article:hover {
+    transform: translate3d(0, -7px, 0) scale(1.008);
+    filter: brightness(1.035);
+  }
+
+  .qevanora-icon-box {
+    transition: transform 420ms var(--qev-motion-ease), box-shadow 420ms ease;
+  }
+
+  .qevanora-card:hover .qevanora-icon-box {
+    transform: translate3d(0, -3px, 0) rotate(-3deg) scale(1.06);
+    box-shadow: 0 10px 30px rgba(45,156,255,0.18), 0 0 18px rgba(214,166,47,0.12);
+  }
+
+  .qevanora-card:hover img:not([src*="digie-store-icon"]) {
+    transition: transform 650ms var(--qev-motion-ease), filter 420ms ease;
+  }
+}
+
+/* Keep the motion comfortable and battery-friendly for accessibility users. */
+@media (prefers-reduced-motion: reduce) {
+  .qev-page-enter,
+  .qev-motion-ready body::before,
+  .qev-ambient,
+  .qev-kicker-float,
+  .qev-title-shine,
+  .qev-hero-float,
+  .qev-hero-float img,
+  header .qevanora-brand-mark,
+  aside .qevanora-brand-mark,
+  header img[src*="digie-store-icon"],
+  aside img[src*="digie-store-icon"],
+  .qevanora-card::after {
+    animation: none !important;
+  }
+
+  .qev-scroll-progress {
+    transition: none !important;
+  }
+
+  .qev-motion-ready .qev-scroll-reveal,
+  .qev-motion-ready .qev-scroll-reveal.qev-in-view {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+}
