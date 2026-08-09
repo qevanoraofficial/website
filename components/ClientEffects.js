@@ -18,6 +18,40 @@ export default function ClientEffects() {
     };
 
     const handleClick = (event) => {
+      // PRODUCT CATEGORY FILTER
+      const productCategoryButton =
+        event.target.closest(".product-subcategory-item") ||
+        event.target.closest("button.product-category-item");
+
+      if (productCategoryButton) {
+        const categoryName = productCategoryButton.textContent
+          ?.replace(/[›⌄]/g, "")
+          .trim()
+          .toLowerCase();
+
+        const facebookProducts =
+          document.getElementById("facebook-products");
+
+        const facebookPanel =
+          facebookProducts?.closest(".products-display-section") ||
+          facebookProducts;
+
+        if (facebookPanel) {
+          const showFacebook = categoryName === "facebook";
+
+          facebookPanel.hidden = !showFacebook;
+
+          if (showFacebook) {
+            requestAnimationFrame(() => {
+              facebookPanel.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+              });
+            });
+          }
+        }
+      }
+
       const faqButton = event.target.closest(".faq-btn");
       if (faqButton) {
         const item = faqButton.parentElement;
