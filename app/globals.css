@@ -2689,3 +2689,135 @@ body{
   color:#f3cf67;
   background:rgba(224,184,77,.06);
 }
+
+/* CATEGORY PRODUCT AREA */
+.category-products-section{
+  margin-top:30px;
+}
+
+.category-products-header{
+  margin-bottom:18px;
+}
+
+.category-products-badge{
+  display:inline-flex;
+  padding:7px 13px;
+  border:1px solid rgba(224,184,77,.3);
+  border-radius:999px;
+  color:#f1ce66;
+  font-size:.72rem;
+  font-weight:800;
+  letter-spacing:.06em;
+  background:rgba(224,184,77,.06);
+}
+
+.category-products-header h2{
+  margin:10px 0 5px;
+  color:#f7f5ee;
+  font-size:1.55rem;
+}
+
+.category-products-header p{
+  margin:0;
+  color:#99a8bc;
+  font-size:.9rem;
+  line-height:1.55;
+}
+
+.product-store-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:16px;
+}
+
+.store-product-card{
+  overflow:hidden;
+  border:1px solid rgba(224,184,77,.2);
+  border-radius:22px;
+  background:
+    linear-gradient(145deg,rgba(3,31,59,.95),rgba(0,16,35,.96));
+  box-shadow:0 18px 50px rgba(0,0,0,.22);
+}
+
+.store-product-image{
+  width:100%;
+  aspect-ratio:16/10;
+  overflow:hidden;
+  background:rgba(255,255,255,.035);
+}
+
+.store-product-image img{
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.store-product-content{
+  padding:17px;
+}
+
+.store-product-content h3{
+  margin:0 0 8px;
+  color:#f4d26d;
+  font-size:1.05rem;
+}
+
+.store-product-description{
+  margin:0 0 17px;
+  color:#aab6c6;
+  font-size:.86rem;
+  line-height:1.55;
+}
+
+.store-product-info{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:15px;
+}
+
+.store-product-info div{
+  padding:11px 12px;
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:13px;
+  background:rgba(255,255,255,.025);
+}
+
+.store-product-info span{
+  display:block;
+  margin-bottom:4px;
+  color:#8393a8;
+  font-size:.7rem;
+}
+
+.store-product-info strong{
+  color:#f5f7fa;
+  font-size:.9rem;
+}
+
+.store-product-detail{
+  width:100%;
+  padding:13px;
+  border:0;
+  border-radius:13px;
+  background:linear-gradient(135deg,#d5aa3d,#f1d06b);
+  color:#06182b;
+  font:inherit;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.store-product-detail:active{
+  transform:scale(.98);
+}
+
+@media(max-width:600px){
+  .category-products-section{
+    margin-top:22px;
+  }
+
+  .product-store-grid{
+    grid-template-columns:1fr;
+  }
+}
