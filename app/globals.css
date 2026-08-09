@@ -2406,3 +2406,128 @@ body{
     transition-duration:.68s,.78s,.62s !important;
   }
 }
+
+/* QEVANORA PURCHASE TESTIMONIAL */
+.purchase-testimonial-section{
+  padding:42px 0 70px;
+}
+
+.purchase-proof-card{
+  max-width:820px;
+  margin:0 auto;
+  overflow:hidden;
+  border:1px solid rgba(224,184,77,.22);
+  border-radius:28px;
+  background:
+    radial-gradient(circle at 100% 0%,rgba(16,117,190,.14),transparent 38%),
+    linear-gradient(145deg,rgba(2,28,54,.94),rgba(0,15,34,.96));
+  box-shadow:0 24px 70px rgba(0,0,0,.28);
+}
+
+.purchase-proof-image{
+  padding:18px;
+}
+
+.purchase-proof-image img{
+  width:100%;
+  max-height:650px;
+  object-fit:contain;
+  border-radius:20px;
+  background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.purchase-proof-content{
+  padding:8px 24px 28px;
+}
+
+.purchase-proof-details{
+  overflow:hidden;
+  border:1px solid rgba(224,184,77,.16);
+  border-radius:20px;
+  background:rgba(0,12,28,.46);
+}
+
+.purchase-detail{
+  display:grid;
+  grid-template-columns:1fr 1.25fr;
+  gap:16px;
+  padding:15px 18px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+
+.purchase-detail:last-child{
+  border-bottom:0;
+}
+
+.purchase-detail span{
+  color:#9eacc0;
+  font-size:.9rem;
+}
+
+.purchase-detail strong{
+  color:#f7f2df;
+  font-size:.92rem;
+  text-align:right;
+  word-break:break-word;
+}
+
+.purchase-thanks{
+  margin-top:20px;
+  padding:20px;
+  text-align:center;
+  border:1px solid rgba(224,184,77,.18);
+  border-radius:20px;
+  background:linear-gradient(135deg,rgba(224,184,77,.08),rgba(10,94,160,.08));
+}
+
+.purchase-thanks strong{
+  display:block;
+  color:#f2cf69;
+  font-size:1rem;
+  line-height:1.5;
+}
+
+.purchase-thanks p{
+  max-width:640px;
+  margin:9px auto 0;
+  color:#aeb9c9;
+  font-size:.86rem;
+  line-height:1.7;
+}
+
+@media(max-width:600px){
+  .purchase-testimonial-section{
+    padding:24px 0 38px;
+  }
+
+  .purchase-proof-card{
+    border-radius:24px;
+  }
+
+  .purchase-proof-image{
+    padding:12px;
+  }
+
+  .purchase-proof-image img{
+    border-radius:16px;
+  }
+
+  .purchase-proof-content{
+    padding:5px 14px 20px;
+  }
+
+  .purchase-detail{
+    grid-template-columns:1fr;
+    gap:5px;
+    padding:13px 15px;
+  }
+
+  .purchase-detail strong{
+    text-align:left;
+  }
+
+  .purchase-thanks{
+    padding:17px 15px;
+  }
+}
