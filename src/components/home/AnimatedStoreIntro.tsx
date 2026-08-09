@@ -362,7 +362,7 @@ export default function AnimatedStoreIntro({
               </h1>
 
               <p className="qev-hero-sequence qev-hero-seq-3 mt-5 max-w-xl break-words text-sm leading-7 text-gray-600 dark:text-gray-300 sm:text-base">
-                menyediakan berbagai produk digital terpercaya dengan proses transaksi yang cepat, mudah, dan aman. Kami berkomitmen untuk memberikan pelayanan terbaik, kualitas produk yang terjamin, serta harga kompetitif yang tetap terjangkau untuk semua kalangan.
+                Menyediakan berbagai produk digital terpercaya dengan proses transaksi yang cepat, mudah, dan aman. Kami berkomitmen untuk memberikan pelayanan terbaik, kualitas produk yang terjamin, serta harga kompetitif yang tetap terjangkau untuk semua kalangan.
               </p>
 
               <div className="qev-hero-sequence qev-hero-seq-4 mt-7 flex flex-col gap-3 sm:flex-row">
