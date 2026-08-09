@@ -2630,3 +2630,62 @@ body{
     font-size:.94rem;
   }
 }
+
+/* SOCIAL MEDIA SUB CATEGORY */
+.product-subcategory{
+  width:100%;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+
+.product-subcategory summary{
+  list-style:none;
+}
+
+.product-subcategory summary::-webkit-details-marker{
+  display:none;
+}
+
+.product-subcategory .product-category-item{
+  border-bottom:0;
+}
+
+.subcategory-arrow{
+  color:#f3cf67;
+  font-size:1.35rem;
+  transition:transform .25s ease;
+}
+
+.product-subcategory[open] .subcategory-arrow{
+  transform:rotate(180deg);
+}
+
+.product-subcategory-list{
+  margin:0 8px 10px;
+  overflow:hidden;
+  border-radius:14px;
+  background:rgba(255,255,255,.035);
+}
+
+.product-subcategory-item{
+  width:100%;
+  display:block;
+  border:0;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  background:transparent;
+  padding:14px 16px 14px 28px;
+  text-align:left;
+  color:#b8c5d6;
+  font:inherit;
+  font-size:.9rem;
+  cursor:pointer;
+}
+
+.product-subcategory-item:last-child{
+  border-bottom:0;
+}
+
+.product-subcategory-item:hover,
+.product-subcategory-item:active{
+  color:#f3cf67;
+  background:rgba(224,184,77,.06);
+}
