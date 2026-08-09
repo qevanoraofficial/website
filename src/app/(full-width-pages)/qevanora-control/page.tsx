@@ -37,10 +37,10 @@ export default async function AdminLoginPage({
   const { error } = await searchParams;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080705] px-4 py-10 text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(194,149,51,0.18),transparent_46%)]" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#010714] px-4 py-10 text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(214,166,47,0.18),transparent_46%)]" />
 
-      <section className="relative w-full max-w-md overflow-hidden rounded-3xl border border-brand-500/20 bg-[#100c09]/95 p-6 shadow-[0_30px_90px_rgba(0,0,0,0.5)] backdrop-blur sm:p-8">
+      <section className="relative w-full max-w-md overflow-hidden rounded-3xl border border-brand-500/20 bg-[#031126]/95 p-6 shadow-[0_30px_90px_rgba(0,0,0,0.5)] backdrop-blur sm:p-8">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300/80 to-transparent" />
 
         <div className="flex flex-col items-center text-center">
@@ -106,7 +106,7 @@ export default async function AdminLoginPage({
 
           <button
             type="submit"
-            className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-bold text-[#120d0a] transition hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/20"
+            className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-bold text-[#031126] transition hover:bg-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/20"
           >
             Masuk ke Admin Panel
           </button>

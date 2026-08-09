@@ -24,10 +24,10 @@ type RequestState = {
 } | null;
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-brand-500/20 bg-[#0b0907] px-4 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
+  "h-12 w-full rounded-xl border border-brand-500/20 bg-[#020b18] px-4 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
 const textareaClass =
-  "min-h-28 w-full resize-y rounded-xl border border-brand-500/20 bg-[#0b0907] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
-const labelClass = "mb-2 block text-sm font-semibold text-[#eadcad]";
+  "min-h-28 w-full resize-y rounded-xl border border-brand-500/20 bg-[#020b18] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
+const labelClass = "mb-2 block text-sm font-semibold text-[#f7e6a8]";
 
 function formatRupiah(value: number | undefined): string {
   return new Intl.NumberFormat("id-ID", {
@@ -552,7 +552,7 @@ export default function AdminDashboard({
             <form action="/api/qevanora-admin/logout" method="post" className="min-w-0">
               <button
                 type="submit"
-                className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-brand-500 px-3 text-xs font-semibold text-[#120d0a] transition hover:bg-brand-400 sm:px-4 sm:text-sm"
+                className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-brand-500 px-3 text-xs font-semibold text-[#031126] transition hover:bg-brand-400 sm:px-4 sm:text-sm"
               >
                 Keluar
               </button>
@@ -610,7 +610,7 @@ export default function AdminDashboard({
             </div>
 
             <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
-              <article className="min-w-0 overflow-hidden rounded-3xl border border-brand-500/15 bg-[#100c09] p-5 shadow-[0_20px_55px_rgba(0,0,0,0.2)] sm:p-7">
+              <article className="min-w-0 overflow-hidden rounded-3xl border border-brand-500/15 bg-[#031126] p-5 shadow-[0_20px_55px_rgba(0,0,0,0.2)] sm:p-7">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
@@ -629,7 +629,7 @@ export default function AdminDashboard({
                       Pengunjung biasa
                     </span>
                     <span className="inline-flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#f3e4b6]" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#d7efff]" />
                       Anggota
                     </span>
                   </div>
@@ -661,7 +661,7 @@ export default function AdminDashboard({
                           <div className="flex h-44 w-full max-w-12 items-end justify-center overflow-hidden rounded-xl border border-white/[0.04] bg-white/[0.025] px-1.5 pt-2">
                             <div className="flex w-full flex-col justify-end overflow-hidden rounded-lg">
                               <div
-                                className="w-full bg-[#f3e4b6] transition-all"
+                                className="w-full bg-[#d7efff] transition-all"
                                 style={{ height: memberHeight }}
                               />
                               <div
@@ -684,7 +684,7 @@ export default function AdminDashboard({
                 )}
               </article>
 
-              <article className="min-w-0 rounded-3xl border border-brand-500/15 bg-gradient-to-br from-[#15100b] to-[#0c0907] p-5 shadow-[0_20px_55px_rgba(0,0,0,0.2)] sm:p-7">
+              <article className="min-w-0 rounded-3xl border border-brand-500/15 bg-gradient-to-br from-[#061a35] to-[#020b18] p-5 shadow-[0_20px_55px_rgba(0,0,0,0.2)] sm:p-7">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
                   Komposisi Audiens
                 </p>
@@ -696,10 +696,10 @@ export default function AdminDashboard({
                   <div
                     className="relative flex h-44 w-44 items-center justify-center rounded-full"
                     style={{
-                      background: `conic-gradient(#d1a94a 0 ${100 - websiteMetrics.memberTrafficShare}%, #f3e4b6 ${100 - websiteMetrics.memberTrafficShare}% 100%)`,
+                      background: `conic-gradient(#d6a62f 0 ${100 - websiteMetrics.memberTrafficShare}%, #d7efff ${100 - websiteMetrics.memberTrafficShare}% 100%)`,
                     }}
                   >
-                    <div className="flex h-32 w-32 flex-col items-center justify-center rounded-full border border-brand-500/10 bg-[#100c09] text-center">
+                    <div className="flex h-32 w-32 flex-col items-center justify-center rounded-full border border-brand-500/10 bg-[#031126] text-center">
                       <span className="text-3xl font-bold text-white">
                         {formatPercent(websiteMetrics.memberTrafficShare)}
                       </span>
@@ -719,7 +719,7 @@ export default function AdminDashboard({
                   </div>
                   <div className="rounded-2xl border border-brand-500/10 bg-white/[0.025] p-4">
                     <p className="text-xs text-gray-500">Anggota</p>
-                    <p className="mt-1 text-xl font-bold text-[#f3e4b6]">
+                    <p className="mt-1 text-xl font-bold text-[#d7efff]">
                       {formatNumber(visitorSummary.totalMemberVisitors)}
                     </p>
                   </div>
@@ -794,7 +794,7 @@ export default function AdminDashboard({
               </div>
             </article>
 
-            <article className="min-w-0 overflow-hidden rounded-3xl border border-brand-500/15 bg-[#100c09] shadow-[0_20px_55px_rgba(0,0,0,0.18)]">
+            <article className="min-w-0 overflow-hidden rounded-3xl border border-brand-500/15 bg-[#031126] shadow-[0_20px_55px_rgba(0,0,0,0.18)]">
               <div className="flex flex-col gap-2 border-b border-brand-500/10 p-5 sm:flex-row sm:items-end sm:justify-between sm:p-7">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">
@@ -856,7 +856,7 @@ export default function AdminDashboard({
               <form
                 id="add-product"
                 onSubmit={addProduct}
-                className="scroll-mt-24 h-fit min-w-0 rounded-3xl border border-brand-500/15 bg-[#100c09] p-5 sm:p-7"
+                className="scroll-mt-24 h-fit min-w-0 rounded-3xl border border-brand-500/15 bg-[#031126] p-5 sm:p-7"
               >
               <p className="text-sm font-semibold text-brand-300">
                 Tambah Produk
@@ -942,7 +942,7 @@ export default function AdminDashboard({
                     required
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    className="block w-full rounded-xl border border-brand-500/20 bg-[#0b0907] p-3 text-sm text-gray-400 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:font-semibold file:text-[#120d0a]"
+                    className="block w-full rounded-xl border border-brand-500/20 bg-[#020b18] p-3 text-sm text-gray-400 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:font-semibold file:text-[#031126]"
                   />
                   <span className="mt-2 block text-xs text-gray-600">
                     JPG, PNG, atau WEBP. Maksimal 4 MB.
@@ -953,7 +953,7 @@ export default function AdminDashboard({
               <button
                 type="submit"
                 disabled={busyAction === "add-product"}
-                className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#120d0a] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#031126] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busyAction === "add-product"
                   ? "Menyimpan..."
@@ -964,7 +964,7 @@ export default function AdminDashboard({
               <form
                 id="add-stock"
                 onSubmit={addStock}
-                className="scroll-mt-24 h-fit min-w-0 rounded-3xl border border-brand-500/15 bg-[#100c09] p-5 sm:p-7"
+                className="scroll-mt-24 h-fit min-w-0 rounded-3xl border border-brand-500/15 bg-[#031126] p-5 sm:p-7"
               >
                 <p className="text-sm font-semibold text-brand-300">
                   Edit Stock
@@ -1008,7 +1008,7 @@ export default function AdminDashboard({
                 <button
                   type="submit"
                   disabled={busyAction === "add-stock" || products.length === 0}
-                  className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#120d0a] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#031126] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {busyAction === "add-stock"
                     ? "Menyimpan..."
@@ -1035,7 +1035,7 @@ export default function AdminDashboard({
                     key={product.id}
                     className="min-w-0 overflow-hidden rounded-2xl border border-brand-500/15 bg-white/[0.025]"
                   >
-                    <div className="relative aspect-[16/10] overflow-hidden bg-[#100c09]">
+                    <div className="relative aspect-[16/10] overflow-hidden bg-[#031126]">
                       <Image
                         src={safeImage(product.image)}
                         alt={`Gambar ${product.name}`}
@@ -1091,7 +1091,7 @@ export default function AdminDashboard({
             <form
               id="add-testimonial"
               onSubmit={addTestimonial}
-              className="scroll-mt-24 h-fit min-w-0 rounded-3xl border border-brand-500/15 bg-[#100c09] p-5 sm:p-7"
+              className="scroll-mt-24 h-fit min-w-0 rounded-3xl border border-brand-500/15 bg-[#031126] p-5 sm:p-7"
             >
               <p className="text-sm font-semibold text-brand-300">
                 Tambah Testimoni
@@ -1211,7 +1211,7 @@ export default function AdminDashboard({
                     required
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    className="block w-full rounded-xl border border-brand-500/20 bg-[#0b0907] p-3 text-sm text-gray-400 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:font-semibold file:text-[#120d0a]"
+                    className="block w-full rounded-xl border border-brand-500/20 bg-[#020b18] p-3 text-sm text-gray-400 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:font-semibold file:text-[#031126]"
                   />
                   <span className="mt-2 block text-xs text-gray-600">
                     JPG, PNG, atau WEBP. Maksimal 4 MB.
@@ -1222,7 +1222,7 @@ export default function AdminDashboard({
               <button
                 type="submit"
                 disabled={busyAction === "add-testimonial"}
-                className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#120d0a] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#031126] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {busyAction === "add-testimonial"
                   ? "Menyimpan..."
@@ -1246,7 +1246,7 @@ export default function AdminDashboard({
                     key={testimonial.id}
                     className="min-w-0 overflow-hidden rounded-2xl border border-brand-500/15 bg-white/[0.025]"
                   >
-                    <div className="relative aspect-[16/10] overflow-hidden bg-[#100c09]">
+                    <div className="relative aspect-[16/10] overflow-hidden bg-[#031126]">
                       <Image
                         src={safeImage(testimonial.image)}
                         alt={`Testimoni ${testimonial.productName}`}

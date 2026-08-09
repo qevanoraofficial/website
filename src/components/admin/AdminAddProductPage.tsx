@@ -8,10 +8,10 @@ type RequestState =
   | null;
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-brand-500/20 bg-[#0b0907] px-4 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
+  "h-12 w-full rounded-xl border border-brand-500/20 bg-[#020b18] px-4 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
 const textareaClass =
-  "min-h-28 w-full resize-y rounded-xl border border-brand-500/20 bg-[#0b0907] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
-const labelClass = "mb-2 block text-sm font-semibold text-[#eadcad]";
+  "min-h-28 w-full resize-y rounded-xl border border-brand-500/20 bg-[#020b18] px-4 py-3 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
+const labelClass = "mb-2 block text-sm font-semibold text-[#f7e6a8]";
 
 async function readPayload(response: Response) {
   const payload = (await response.json().catch(() => null)) as
@@ -74,7 +74,7 @@ export default function AdminAddProductPage() {
 
       <form
         onSubmit={submit}
-        className="mx-auto w-full max-w-3xl rounded-3xl border border-brand-500/15 bg-[#100c09] p-5 sm:p-7"
+        className="mx-auto w-full max-w-3xl rounded-3xl border border-brand-500/15 bg-[#031126] p-5 sm:p-7"
       >
         <p className="text-sm font-semibold text-brand-300">Tambah Produk</p>
         <h1 className="mt-1 text-2xl font-bold">Produk baru</h1>
@@ -159,7 +159,7 @@ export default function AdminAddProductPage() {
               required
               type="file"
               accept="image/jpeg,image/png,image/webp"
-              className="block w-full rounded-xl border border-brand-500/20 bg-[#0b0907] p-3 text-sm text-gray-400 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:font-semibold file:text-[#120d0a]"
+              className="block w-full rounded-xl border border-brand-500/20 bg-[#020b18] p-3 text-sm text-gray-400 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-500 file:px-4 file:py-2 file:font-semibold file:text-[#031126]"
             />
             <span className="mt-2 block text-xs text-gray-600">
               JPG, PNG, atau WEBP. Maksimal 4 MB.
@@ -170,7 +170,7 @@ export default function AdminAddProductPage() {
         <button
           type="submit"
           disabled={busy}
-          className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#120d0a] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#031126] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy ? "Menyimpan..." : "Tambah Produk"}
         </button>

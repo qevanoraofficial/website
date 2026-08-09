@@ -82,10 +82,10 @@ const AppHeader: React.FC = () => {
               height={38}
               src="/images/logo/digie-store-icon.png"
               alt="Logo QEVANORA OFFICIAL"
-              className="h-9 w-9 object-contain"
+              className="qevanora-brand-mark h-9 w-9 object-contain"
               priority
             />
-            <span className="max-w-[180px] truncate whitespace-nowrap text-base font-bold text-gray-900 dark:text-white sm:text-lg">
+            <span className="qevanora-brand-wordmark max-w-[180px] truncate whitespace-nowrap text-base font-bold sm:text-lg">
               QEVANORA OFFICIAL
             </span>
           </Link>

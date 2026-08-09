@@ -38,45 +38,45 @@
   --color-white: #ffffff;
   --color-black: #101828;
 
-  --color-brand-25: #fffdf7;
-  --color-brand-50: #faf3dc;
-  --color-brand-100: #f4e5b2;
-  --color-brand-200: #e9d082;
-  --color-brand-300: #ddb95a;
-  --color-brand-400: #d1a94a;
-  --color-brand-500: #c29533;
-  --color-brand-600: #aa7e22;
-  --color-brand-700: #855f19;
-  --color-brand-800: #664714;
-  --color-brand-900: #45300d;
-  --color-brand-950: #1c1306;
+  --color-brand-25: #fffdf5;
+  --color-brand-50: #fff8e6;
+  --color-brand-100: #ffefbd;
+  --color-brand-200: #ffe285;
+  --color-brand-300: #f7d56e;
+  --color-brand-400: #e7bc50;
+  --color-brand-500: #d6a62f;
+  --color-brand-600: #b98216;
+  --color-brand-700: #966a12;
+  --color-brand-800: #73500e;
+  --color-brand-900: #4e3508;
+  --color-brand-950: #281b04;
 
   --color-blue-light-25: #f5fbff;
-  --color-blue-light-50: #f0f9ff;
-  --color-blue-light-100: #e0f2fe;
-  --color-blue-light-200: #b9e6fe;
-  --color-blue-light-300: #7cd4fd;
-  --color-blue-light-400: #36bffa;
-  --color-blue-light-500: #0ba5ec;
-  --color-blue-light-600: #0086c9;
-  --color-blue-light-700: #026aa2;
-  --color-blue-light-800: #065986;
-  --color-blue-light-900: #0b4a6f;
-  --color-blue-light-950: #062c41;
+  --color-blue-light-50: #eaf5ff;
+  --color-blue-light-100: #d6ecff;
+  --color-blue-light-200: #aad8ff;
+  --color-blue-light-300: #72bdff;
+  --color-blue-light-400: #2d9cff;
+  --color-blue-light-500: #0877d9;
+  --color-blue-light-600: #075fb0;
+  --color-blue-light-700: #074b8a;
+  --color-blue-light-800: #073b6a;
+  --color-blue-light-900: #062f55;
+  --color-blue-light-950: #031b33;
 
-  --color-gray-25: #fcfcfd;
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f2f4f7;
-  --color-gray-200: #e4e7ec;
-  --color-gray-300: #d0d5dd;
-  --color-gray-400: #98a2b3;
-  --color-gray-500: #667085;
-  --color-gray-600: #475467;
-  --color-gray-700: #344054;
-  --color-gray-800: #1d2939;
-  --color-gray-900: #101828;
-  --color-gray-950: #0c111d;
-  --color-gray-dark: #1a2231;
+  --color-gray-25: #f8fbff;
+  --color-gray-50: #eef5fc;
+  --color-gray-100: #dfeaf6;
+  --color-gray-200: #c7d7e9;
+  --color-gray-300: #a3b9d1;
+  --color-gray-400: #7890aa;
+  --color-gray-500: #587089;
+  --color-gray-600: #405671;
+  --color-gray-700: #293f5b;
+  --color-gray-800: #122943;
+  --color-gray-900: #071a31;
+  --color-gray-950: #020b18;
+  --color-gray-dark: #06152a;
 
   --color-orange-25: #fffaf5;
   --color-orange-50: #fff6ed;
@@ -770,48 +770,270 @@ span.flatpickr-weekday,
   }
 }
 
-/* QEVANORA OFFICIAL — background revision only.
-   This block changes only the page, header, and sidebar background colors.
-   It does not change text, logo, layout, buttons, or website functionality. */
+/* QEVANORA OFFICIAL — logo-led visual system.
+   The identity follows the uploaded mark: midnight navy, royal blue, metallic gold,
+   circular motion, soft stars, and polished highlights. Functional behavior is unchanged. */
+:root {
+  --qev-navy-950: #010714;
+  --qev-navy-900: #031126;
+  --qev-navy-850: #061a35;
+  --qev-navy-800: #092344;
+  --qev-blue: #0877d9;
+  --qev-blue-bright: #2d9cff;
+  --qev-gold: #d6a62f;
+  --qev-gold-light: #f7d56e;
+  --qev-cream: #fff7d6;
+}
+
 html,
 body {
   min-height: 100%;
-  background-color: #090806 !important;
+  background-color: var(--qev-navy-950) !important;
 }
 
 body {
+  color: #eef6ff;
   background-image:
-    radial-gradient(circle at 50% -12%, rgba(155, 114, 47, 0.20) 0%, rgba(24, 19, 13, 0.08) 30%, transparent 58%),
-    radial-gradient(circle at 92% 8%, rgba(211, 166, 70, 0.10) 0%, transparent 24%),
-    radial-gradient(circle at 8% 88%, rgba(180, 132, 46, 0.08) 0%, transparent 26%),
-    linear-gradient(135deg, #080706 0%, #15120e 42%, #0d0b08 72%, #070605 100%) !important;
+    radial-gradient(circle at 16% -10%, rgba(45, 156, 255, 0.24) 0%, rgba(8, 119, 217, 0.08) 28%, transparent 52%),
+    radial-gradient(circle at 92% 10%, rgba(247, 213, 110, 0.15) 0%, transparent 25%),
+    radial-gradient(circle at 14% 94%, rgba(8, 119, 217, 0.12) 0%, transparent 30%),
+    linear-gradient(145deg, #010714 0%, #031126 40%, #061a35 70%, #020b18 100%) !important;
   background-repeat: no-repeat !important;
   background-size: cover !important;
   background-attachment: fixed !important;
 }
 
-/* Keep the fixed navigation surfaces in the same warm black tone as the reference image. */
-body header.sticky,
-body aside.fixed {
-  background-color: rgba(10, 8, 6, 0.96) !important;
-  border-color: rgba(194, 149, 51, 0.16) !important;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: url('/images/brand/qevanora-orbit.svg'), url('/images/brand/qevanora-stars.svg');
+  background-position: right -300px top -250px, center top;
+  background-repeat: no-repeat, repeat;
+  background-size: 940px 940px, 620px 620px;
+  opacity: 0.42;
 }
 
-/* Subtle golden ambient light without inserting any new logo or text. */
-body::before {
+body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 18% 0%, rgba(218, 172, 76, 0.08), transparent 32%),
-    radial-gradient(ellipse at 100% 100%, rgba(218, 172, 76, 0.06), transparent 34%),
-    radial-gradient(ellipse at center, transparent 30%, rgba(0, 0, 0, 0.46) 100%);
+    linear-gradient(118deg, transparent 0 46%, rgba(214, 166, 47, 0.035) 48%, transparent 51%),
+    radial-gradient(ellipse at center, transparent 35%, rgba(0, 2, 8, 0.56) 100%);
 }
 
+::selection {
+  color: #031126;
+  background: var(--qev-gold-light);
+}
+
+body header.sticky,
+body aside.fixed {
+  background: linear-gradient(180deg, rgba(3, 17, 38, 0.96), rgba(2, 11, 24, 0.95)) !important;
+  border-color: rgba(214, 166, 47, 0.24) !important;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.22), inset 0 -1px 0 rgba(45, 156, 255, 0.08);
+  backdrop-filter: blur(18px) saturate(1.25);
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+}
+
+body header.sticky::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(247, 213, 110, 0.75), rgba(45, 156, 255, 0.55), transparent);
+  pointer-events: none;
+}
+
+.dark .rounded-2xl.border,
+.dark .rounded-3xl.border,
+.dark article.rounded-2xl,
+.dark section.rounded-2xl,
+.dark section.rounded-3xl {
+  border-color: rgba(114, 189, 255, 0.14) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 18px 55px rgba(0, 31, 73, 0.16);
+}
+
+.qevanora-title-metallic {
+  color: transparent !important;
+  background: linear-gradient(100deg, #fff8d9 0%, #f7d56e 19%, #d6a62f 42%, #fff0ab 58%, #52b0ff 82%, #d7efff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 24px rgba(214, 166, 47, 0.10));
+}
+
+.qevanora-kicker {
+  border: 1px solid rgba(247, 213, 110, 0.22);
+  background: linear-gradient(135deg, rgba(214, 166, 47, 0.12), rgba(8, 119, 217, 0.13));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 28px rgba(0, 44, 100, 0.10);
+}
+
+.qevanora-gold-button {
+  border: 1px solid rgba(255, 235, 160, 0.48) !important;
+  color: #031126 !important;
+  background: linear-gradient(135deg, #966a12 0%, #d6a62f 26%, #f7d56e 52%, #b98216 78%, #e7bc50 100%) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.46), 0 10px 28px rgba(214, 166, 47, 0.20);
+}
+
+.qevanora-gold-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55), 0 14px 34px rgba(214, 166, 47, 0.28);
+}
+
+.qevanora-blue-button {
+  border: 1px solid rgba(114, 189, 255, 0.30) !important;
+  color: #f7fbff !important;
+  background: linear-gradient(135deg, rgba(8, 119, 217, 0.34), rgba(3, 17, 38, 0.86)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 28px rgba(0, 71, 153, 0.18);
+}
+
+.qevanora-blue-button:hover {
+  border-color: rgba(247, 213, 110, 0.45) !important;
+  background: linear-gradient(135deg, rgba(8, 119, 217, 0.48), rgba(6, 26, 53, 0.94)) !important;
+}
+
+.qevanora-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(114, 189, 255, 0.14) !important;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(45, 156, 255, 0.08), transparent 34%),
+    linear-gradient(145deg, rgba(9, 35, 68, 0.62), rgba(2, 11, 24, 0.82)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 18px 50px rgba(0, 33, 78, 0.16);
+}
+
+.qevanora-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 8%;
+  width: 46%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(247,213,110,0.72), transparent);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.qevanora-card:hover {
+  border-color: rgba(247, 213, 110, 0.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045), 0 22px 60px rgba(0, 60, 130, 0.22);
+}
+
+.qevanora-icon-box {
+  border: 1px solid rgba(247,213,110,0.18);
+  color: #f7d56e !important;
+  background: linear-gradient(145deg, rgba(214,166,47,0.12), rgba(8,119,217,0.15)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045), 0 8px 26px rgba(0,57,120,0.12);
+}
+
+.qevanora-hero-frame {
+  border: 1px solid rgba(247, 213, 110, 0.28);
+  border-radius: 28px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(247,213,110,0.28), rgba(45,156,255,0.20), rgba(214,166,47,0.16));
+  box-shadow:
+    0 0 0 1px rgba(45,156,255,0.05),
+    0 26px 80px rgba(0,40,94,0.28),
+    0 0 60px rgba(214,166,47,0.08);
+}
+
+.qevanora-hero-frame img {
+  border-radius: 27px;
+}
+
+.qevanora-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(214,166,47,0.52), rgba(45,156,255,0.42), transparent);
+}
+
+
+.qevanora-brand-mark {
+  border: 1px solid rgba(247, 213, 110, 0.28);
+  border-radius: 12px;
+  background: #031126;
+  box-shadow: 0 0 0 1px rgba(45,156,255,0.08), 0 0 24px rgba(8,119,217,0.20), 0 8px 24px rgba(0,0,0,0.22);
+}
+
+.qevanora-brand-wordmark {
+  color: #fff7d6 !important;
+  text-shadow: 0 0 18px rgba(45,156,255,0.10), 0 0 12px rgba(214,166,47,0.08);
+}
+
+/* Sidebar navigation adopts the blue + gold emblem language. */
+.dark .menu-item-active,
+.dark .menu-dropdown-item-active {
+  color: var(--qev-gold-light) !important;
+  background: linear-gradient(90deg, rgba(214,166,47,0.16), rgba(8,119,217,0.12)) !important;
+  box-shadow: inset 3px 0 0 rgba(247,213,110,0.82), inset 0 1px 0 rgba(255,255,255,0.025);
+}
+
+.dark .menu-item-inactive:hover,
+.dark .menu-dropdown-item-inactive:hover {
+  color: #f2f8ff !important;
+  background: linear-gradient(90deg, rgba(8,119,217,0.12), rgba(45,156,255,0.04)) !important;
+}
+
+.dark .menu-item-icon-active,
+.dark .menu-item-arrow-active {
+  color: var(--qev-gold-light) !important;
+}
+
+.dark main h1 {
+  letter-spacing: -0.015em;
+  text-shadow: 0 0 24px rgba(45,156,255,0.07);
+}
+
+.dark main h2,
+.dark main h3 {
+  text-shadow: 0 0 18px rgba(8,119,217,0.05);
+}
+
+.dark a,
+.dark button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(214,166,47,.72), rgba(8,119,217,.62)) !important;
+}
+
+/* Brand-colored static actions across customer pages. */
+.bg-brand-500 {
+  color: #031126;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 8px 24px rgba(214,166,47,0.12);
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: rgba(3, 17, 38, 0.72) !important;
+  border-color: rgba(114, 189, 255, 0.18) !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: rgba(247, 213, 110, 0.58) !important;
+  box-shadow: 0 0 0 3px rgba(214, 166, 47, 0.10) !important;
+}
+
+.qevanora-marquee-track,
+.qevanora-trust-track {
+  color: #dcecff;
+}
+
+.qevanora-trust-track img {
+  filter: sepia(1) saturate(1.5) hue-rotate(350deg) brightness(1.15);
+}
 
 /* Mobile width safeguard: animated rows must never enlarge the page width. */
 html,

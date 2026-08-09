@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Outfit } from 'next/font/google';
 import './globals.css';
 import "flatpickr/dist/flatpickr.css";
@@ -12,6 +12,16 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "QEVANORA OFFICIAL",
   description: "Produk digital Minecraft Bedrock gratis dan premium.",
+  icons: {
+    icon: "/images/favicon.ico",
+    shortcut: "/images/favicon.ico",
+    apple: "/images/logo/digie-store-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#031126",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({
@@ -20,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="id" className="dark">
       <body className={`${outfit.className} bg-gray-900`}>
         <ThemeProvider>
           <SidebarProvider>{children}</SidebarProvider>

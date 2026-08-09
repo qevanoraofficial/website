@@ -96,7 +96,7 @@ export default function AdminDeleteProductPage({
         </div>
 
         {products.length === 0 ? (
-          <div className="rounded-3xl border border-brand-500/15 bg-[#100c09] px-5 py-12 text-center">
+          <div className="rounded-3xl border border-brand-500/15 bg-[#031126] px-5 py-12 text-center">
             <h2 className="font-semibold text-white">Belum ada produk</h2>
             <p className="mt-2 text-sm text-gray-400">
               Produk yang tersedia akan muncul di halaman ini.
@@ -107,9 +107,9 @@ export default function AdminDeleteProductPage({
             {products.map((product) => (
               <article
                 key={product.id}
-                className="min-w-0 overflow-hidden rounded-3xl border border-brand-500/15 bg-[#100c09]"
+                className="min-w-0 overflow-hidden rounded-3xl border border-brand-500/15 bg-[#031126]"
               >
-                <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#1a2638]">
+                <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#071f3d]">
                   {product.image ? (
                     <img
                       src={product.image}

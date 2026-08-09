@@ -9,8 +9,8 @@ type RequestState =
   | null;
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-brand-500/20 bg-[#0b0907] px-4 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
-const labelClass = "mb-2 block text-sm font-semibold text-[#eadcad]";
+  "h-12 w-full rounded-xl border border-brand-500/20 bg-[#020b18] px-4 text-sm text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400";
+const labelClass = "mb-2 block text-sm font-semibold text-[#f7e6a8]";
 
 type Props = {
   initialProducts: Product[];
@@ -94,7 +94,7 @@ export default function AdminStockPage({
 
       <form
         onSubmit={submit}
-        className="mx-auto w-full max-w-3xl rounded-3xl border border-brand-500/15 bg-[#100c09] p-5 sm:p-7"
+        className="mx-auto w-full max-w-3xl rounded-3xl border border-brand-500/15 bg-[#031126] p-5 sm:p-7"
       >
         <p className="text-sm font-semibold text-brand-300">Add Stock</p>
         <h1 className="mt-1 text-2xl font-bold">Ubah stock produk</h1>
@@ -136,7 +136,7 @@ export default function AdminStockPage({
         <button
           type="submit"
           disabled={busy || products.length === 0}
-          className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#120d0a] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-[#031126] transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy ? "Menyimpan..." : "Simpan Stock"}
         </button>

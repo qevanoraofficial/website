@@ -82,7 +82,7 @@ function shortText(product: Product): string {
 
 function IconBox({ children }: { children: ReactNode }) {
   return (
-    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-500 dark:bg-brand-500/10 dark:text-brand-400">
+    <span className="qevanora-icon-box flex h-12 w-12 shrink-0 items-center justify-center rounded-xl">
       {children}
     </span>
   );
@@ -358,12 +358,12 @@ export default function AnimatedStoreIntro({
 
           <div className="grid w-full min-w-0 max-w-full items-center gap-10 md:gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-14">
             <div className="w-full min-w-0 max-w-full overflow-hidden lg:pr-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-600 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-brand-400">
+              <span className="qevanora-kicker inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-brand-300">
                 <span className="h-2 w-2 rounded-full bg-success-500 motion-safe:animate-pulse" />
                 Produk digital terpercaya
               </span>
 
-              <h1 className="mt-5 max-w-2xl text-3xl font-bold leading-tight text-gray-900 dark:text-white sm:text-4xl lg:text-5xl">
+              <h1 className="qevanora-title-metallic mt-5 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
                 QEVANORA OFFICIAL
               </h1>
 
@@ -374,14 +374,14 @@ export default function AnimatedStoreIntro({
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <a
                   href="#produk-terbaru"
-                  className="inline-flex items-center justify-center rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-white shadow-theme-sm transition hover:bg-brand-600"
+                  className="qevanora-gold-button inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition"
                 >
                   Lihat Produk
                 </a>
 
                 <Link
                   href="/testimonials"
-                  className="inline-flex items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-transparent dark:text-gray-200 dark:hover:bg-white/[0.04]"
+                  className="qevanora-blue-button inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition"
                 >
                   Lihat Testimoni
                 </Link>
@@ -402,10 +402,10 @@ export default function AnimatedStoreIntro({
             </div>
 
             <div className="relative mx-auto w-full min-w-0 max-w-2xl overflow-hidden lg:max-w-xl">
-              <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(194,149,51,0.18),transparent_68%)] blur-2xl" />
+              <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(214,166,47,0.18),transparent_68%)] blur-2xl" />
 
               <div className="relative w-full min-w-0 max-w-full overflow-hidden">
-                <div className="w-full min-w-0 max-w-full overflow-hidden">
+                <div className="qevanora-hero-frame w-full min-w-0 max-w-full overflow-hidden">
                   <Image
                     src="/images/logo/digie-store-home.png"
                     alt="Banner QEVANORA OFFICIAL"
@@ -427,7 +427,7 @@ export default function AnimatedStoreIntro({
                         {trustMarqueeItems.map((item) => (
                           <span
                             key={`${sequence}-${item}`}
-                            className="inline-flex shrink-0 items-center gap-2 px-4 py-2 text-xs font-semibold text-[#f0dfad] sm:text-sm"
+                            className="inline-flex shrink-0 items-center gap-2 px-4 py-2 text-xs font-semibold text-[#f7d56e] sm:text-sm"
                           >
                             <Image
                               src="/images/icons/done-all.svg"
@@ -456,7 +456,7 @@ export default function AnimatedStoreIntro({
           {benefits.map((benefit, index) => (
             <article
               key={benefit.title}
-              className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
+              className="qevanora-card rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]"
             >
               <div className="flex items-start gap-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-bold text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
@@ -494,7 +494,7 @@ export default function AnimatedStoreIntro({
               <Link
                 key={item.title}
                 href={item.href}
-                className="group rounded-2xl border border-gray-200 bg-white p-5 transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-theme-md dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-500/40"
+                className="qevanora-card group rounded-2xl border border-gray-200 bg-white p-5 transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-theme-md dark:border-gray-800 dark:bg-white/[0.03] dark:hover:border-brand-500/40"
               >
                 <IconBox>{item.icon}</IconBox>
                 <h3 className="mt-4 font-semibold text-gray-800 group-hover:text-brand-500 dark:text-white/90">
@@ -511,7 +511,7 @@ export default function AnimatedStoreIntro({
 
       {categories.length > 0 && (
         <Reveal className="mt-10" delay={120}>
-          <section className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
+          <section className="qevanora-card rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
                 <p className="text-sm font-semibold text-brand-500">
@@ -556,7 +556,7 @@ export default function AnimatedStoreIntro({
               {latestProducts.map((product) => (
                 <article
                   key={product.id}
-                  className="group overflow-hidden rounded-2xl border border-gray-200 bg-white transition hover:-translate-y-1 hover:shadow-theme-md dark:border-gray-800 dark:bg-white/[0.03]"
+                  className="qevanora-card group overflow-hidden rounded-2xl border border-gray-200 bg-white transition hover:-translate-y-1 hover:shadow-theme-md dark:border-gray-800 dark:bg-white/[0.03]"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 dark:bg-gray-800">
                     <Image
@@ -596,7 +596,7 @@ export default function AnimatedStoreIntro({
 
                     <Link
                       href={`/products/${product.category}/${product.id}`}
-                      className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-600"
+                      className="qevanora-gold-button mt-4 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition"
                     >
                       Detail Produk
                     </Link>
@@ -618,7 +618,7 @@ export default function AnimatedStoreIntro({
       </Reveal>
 
       <Reveal className="mt-10" delay={160}>
-        <section className="overflow-hidden rounded-3xl border border-gray-200 bg-gray-950 px-5 py-7 text-white dark:border-gray-800 sm:px-8 sm:py-9">
+        <section className="qevanora-card overflow-hidden rounded-3xl border px-5 py-7 text-white sm:px-8 sm:py-9">
           <div className="grid gap-7 lg:grid-cols-[0.75fr_1.25fr] lg:items-center">
             <div>
               <p className="text-sm font-semibold text-blue-light-400">
@@ -633,7 +633,7 @@ export default function AnimatedStoreIntro({
               </p>
               <Link
                 href="/testimonials"
-                className="mt-5 inline-flex items-center rounded-xl bg-white px-5 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-100"
+                className="qevanora-gold-button mt-5 inline-flex items-center rounded-xl px-5 py-3 text-sm font-semibold transition"
               >
                 Lihat Semua Testimoni
               </Link>
@@ -644,7 +644,7 @@ export default function AnimatedStoreIntro({
                 {latestTestimonials.map((testimonial, index) => (
                   <article
                     key={testimonial.id || `${testimonial.name}-${index}`}
-                    className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                    className="qevanora-card rounded-2xl border border-white/10 bg-white/5 p-4"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-semibold text-success-400">
@@ -667,7 +667,7 @@ export default function AnimatedStoreIntro({
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-gray-300">
+              <div className="qevanora-card rounded-2xl border border-white/10 bg-white/5 p-6 text-center text-sm text-gray-300">
                 Testimoni pelanggan akan tampil otomatis di bagian ini.
               </div>
             )}
@@ -676,7 +676,7 @@ export default function AnimatedStoreIntro({
       </Reveal>
 
       <Reveal className="mt-10" delay={180}>
-        <section className="rounded-3xl border border-brand-200 bg-gradient-to-br from-brand-50 to-blue-light-50 p-6 dark:border-brand-500/20 dark:from-brand-500/10 dark:to-blue-light-500/5 sm:p-8">
+        <section className="qevanora-card rounded-3xl border p-6 sm:p-8">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
             <div className="max-w-2xl">
               <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">
@@ -693,7 +693,7 @@ export default function AnimatedStoreIntro({
 
             <Link
               href="/support"
-              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-brand-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-600"
+              className="qevanora-gold-button inline-flex shrink-0 items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
             >
               Hubungi Support
             </Link>

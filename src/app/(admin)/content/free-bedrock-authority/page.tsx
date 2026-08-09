@@ -9,7 +9,7 @@ export default function FreeBedrockAuthorityPage() {
   return (
     <main className="w-full min-w-0">
       <section className="relative overflow-hidden rounded-3xl border border-brand-500/15 bg-white/[0.025] p-5 sm:p-7 lg:p-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(194,149,51,0.14),transparent_48%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(214,166,47,0.14),transparent_48%)]" />
 
         <div className="relative">
           <p className="text-xs font-semibold tracking-[0.28em] text-brand-400">
@@ -26,7 +26,7 @@ export default function FreeBedrockAuthorityPage() {
         </div>
       </section>
 
-      <section className="mt-5 rounded-3xl border border-brand-500/15 bg-[#100c09] px-5 py-12 text-center sm:px-7">
+      <section className="mt-5 rounded-3xl border border-brand-500/15 bg-[#031126] px-5 py-12 text-center sm:px-7">
         <h2 className="text-lg font-semibold text-white">
           Belum ada konten
         </h2>

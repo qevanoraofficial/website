@@ -63,7 +63,7 @@ export default function ContentPage() {
   return (
     <main className="w-full min-w-0 space-y-6">
       <section className="relative overflow-hidden rounded-3xl border border-brand-500/20 bg-white/[0.03] p-5 shadow-theme-sm sm:p-7 lg:p-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(194,149,51,0.16),transparent_48%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(214,166,47,0.16),transparent_48%)]" />
 
         <div className="relative flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
           <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-brand-500/20 bg-brand-500/10">
@@ -106,7 +106,7 @@ export default function ContentPage() {
           {orderSteps.map((step) => (
             <article
               key={step.number}
-              className="flex min-w-0 items-start gap-4 rounded-2xl border border-brand-500/15 bg-[#100c09] p-4 sm:p-5"
+              className="flex min-w-0 items-start gap-4 rounded-2xl border border-brand-500/15 bg-[#031126] p-4 sm:p-5"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-sm font-bold text-brand-300">
                 {step.number}
@@ -150,7 +150,7 @@ export default function ContentPage() {
 
               <Link
                 href={item.href}
-                className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-[#120d0a] transition hover:bg-brand-400"
+                className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-[#031126] transition hover:bg-brand-400"
               >
                 {item.action}
               </Link>

@@ -165,7 +165,7 @@ export default function AdminSidebar() {
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 mt-16 flex h-screen flex-col border-r border-brand-500/15 bg-[#050403] px-5 text-white transition-all duration-300 ease-in-out lg:mt-0 ${
+      className={`fixed left-0 top-0 z-50 mt-16 flex h-screen flex-col border-r border-brand-500/15 bg-[#020b18] px-5 text-white transition-all duration-300 ease-in-out lg:mt-0 ${
         isExpanded || isMobileOpen || isHovered ? "w-[290px]" : "w-[90px]"
       } ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
@@ -189,11 +189,11 @@ export default function AdminSidebar() {
             alt="Logo QEVANORA OFFICIAL"
             width={42}
             height={42}
-            className="h-10 w-10 shrink-0 object-contain"
+            className="qevanora-brand-mark h-10 w-10 shrink-0 object-contain"
             priority
           />
           {showLabels && (
-            <span className="whitespace-nowrap text-xl font-bold text-white">
+            <span className="qevanora-brand-wordmark whitespace-nowrap text-xl font-bold">
               QEVANORA OFFICIAL
             </span>
           )}

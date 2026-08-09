@@ -371,11 +371,11 @@ export default function AppSidebar() {
             alt="Logo QEVANORA OFFICIAL"
             width={42}
             height={42}
-            className="h-10 w-10 shrink-0 object-contain"
+            className="qevanora-brand-mark h-10 w-10 shrink-0 object-contain"
             priority
           />
           {showLabels && (
-            <span className="whitespace-nowrap text-lg font-bold text-gray-900 dark:text-white">
+            <span className="qevanora-brand-wordmark whitespace-nowrap text-lg font-bold">
               QEVANORA OFFICIAL
             </span>
           )}
