@@ -7,8 +7,17 @@ export type ProductCategory = {
   name: string;
 };
 
+const pinnedProductCategories: ProductCategory[] = [
+  { slug: "pterodactyl-panel", name: "Pterodactyl Panel" },
+  { slug: "sosmed-facebook", name: "Sosmed Facebook" },
+  { slug: "nokos", name: "Nokos" },
+  { slug: "layanan-digital", name: "Layanan Digital" },
+];
+
 export function getProductCategories(products: Product[]): ProductCategory[] {
-  const categories = new Map<string, string>();
+  const categories = new Map<string, string>(
+    pinnedProductCategories.map((category) => [category.slug, category.name]),
+  );
 
   products.forEach((product) => {
     if (
@@ -21,9 +30,13 @@ export function getProductCategories(products: Product[]): ProductCategory[] {
     }
   });
 
-  return Array.from(categories.entries())
+  const pinnedSlugs = new Set(pinnedProductCategories.map((item) => item.slug));
+  const extraCategories = Array.from(categories.entries())
+    .filter(([slug]) => !pinnedSlugs.has(slug))
     .map(([slug, name]) => ({ slug, name }))
     .sort((first, second) => first.name.localeCompare(second.name, "id-ID"));
+
+  return [...pinnedProductCategories, ...extraCategories];
 }
 
 export function getCategoryProducts(

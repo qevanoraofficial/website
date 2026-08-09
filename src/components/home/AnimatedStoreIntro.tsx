@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Product, TransactionTestimonial } from "@/types/catalog";
+import { getProductCategories } from "@/lib/products";
 
 type RevealProps = {
   children: ReactNode;
@@ -290,20 +291,10 @@ export default function AnimatedStoreIntro({
     [initialProducts],
   );
 
-  const categories = useMemo(() => {
-    const map = new Map<string, string>();
-
-    products.forEach((product) => {
-      if (product.category && product.categoryName) {
-        map.set(product.category, product.categoryName);
-      }
-    });
-
-    return Array.from(map.entries()).map(([slug, name]) => ({
-      slug,
-      name,
-    }));
-  }, [products]);
+  const categories = useMemo(
+    () => getProductCategories(products),
+    [products],
+  );
 
   const testimonials = useMemo(
     () =>

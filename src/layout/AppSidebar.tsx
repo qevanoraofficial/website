@@ -21,6 +21,7 @@ import DisclaimerIcon from "../icons/disclaimer.svg";
 import PrivacyIcon from "../icons/privacy.svg";
 import ProfileAccountIcon from "../icons/profile-account.svg";
 import type { Product } from "@/types/catalog";
+import { getProductCategories } from "@/lib/products";
 
 type NavItem = {
   name: string;
@@ -99,25 +100,7 @@ export default function AppSidebar() {
           return;
         }
 
-        const categoryMap = new Map<string, string>();
-        payload.products.forEach((product) => {
-          if (
-            product.active !== false &&
-            product.category &&
-            product.categoryName &&
-            !categoryMap.has(product.category)
-          ) {
-            categoryMap.set(product.category, product.categoryName);
-          }
-        });
-
-        setCategories(
-          Array.from(categoryMap.entries())
-            .map(([slug, name]) => ({ slug, name }))
-            .sort((first, second) =>
-              first.name.localeCompare(second.name, "id-ID"),
-            ),
-        );
+        setCategories(getProductCategories(payload.products));
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           console.error("Kategori produk gagal dibaca.", error);
