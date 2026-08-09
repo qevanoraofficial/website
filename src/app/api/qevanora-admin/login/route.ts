@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 function loginUrl(request: Request, error?: string): URL {
-  const url = new URL("/qevanora-control", request.url);
+  const url = new URL("/admin", request.url);
 
   if (error) {
     url.searchParams.set("error", error);
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
   try {
     const response = NextResponse.redirect(
-      new URL("/qevanora-control/panel", request.url),
+      new URL("/admin/panel", request.url),
       303,
     );
 

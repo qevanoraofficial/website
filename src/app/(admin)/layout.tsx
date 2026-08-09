@@ -16,7 +16,9 @@ export default function AdminLayout({
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const pathname = usePathname();
-  const isAdminPanel = pathname.startsWith("/qevanora-control/panel");
+  const isAdminPanel =
+    pathname.startsWith("/admin/panel") ||
+    pathname.startsWith("/qevanora-control/panel");
 
   // Dynamic class for main content margin based on sidebar state
   const mainContentMargin = isMobileOpen

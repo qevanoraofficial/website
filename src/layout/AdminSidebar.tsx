@@ -26,17 +26,17 @@ const productSubmenu: SubmenuItem[] = [
   {
     key: "delete-product",
     name: "ʜᴀᴘᴜꜱ ᴘʀᴏᴅᴜᴋ",
-    href: "/qevanora-control/panel/products/delete",
+    href: "/admin/panel/products/delete",
   },
   {
     key: "add-product",
     name: "ᴀᴅᴅ ᴘʀᴏᴅᴜᴋ",
-    href: "/qevanora-control/panel/products/add",
+    href: "/admin/panel/products/add",
   },
   {
     key: "add-stock",
     name: "ᴇᴅɪᴛ ꜱᴛᴏᴄᴋ",
-    href: "/qevanora-control/panel/products/stock",
+    href: "/admin/panel/products/stock",
   },
 ];
 
@@ -44,12 +44,12 @@ const testimonialSubmenu: SubmenuItem[] = [
   {
     key: "delete-testimonial",
     name: "ʜᴀᴘᴜꜱ ᴛᴇꜱᴛɪᴍᴏɴɪ",
-    href: "/qevanora-control/panel#delete-testimonial",
+    href: "/admin/panel#delete-testimonial",
   },
   {
     key: "add-testimonial",
     name: "ᴀᴅᴅ ᴛᴇꜱᴛɪᴍᴏɴɪ",
-    href: "/qevanora-control/panel#add-testimonial",
+    href: "/admin/panel#add-testimonial",
   },
 ];
 
@@ -177,7 +177,7 @@ export default function AdminSidebar() {
         }`}
       >
         <Link
-          href="/qevanora-control/panel#summary"
+          href="/admin/panel#summary"
           className="flex items-center gap-3"
           onClick={() => {
             setActiveMenu("summary");
@@ -204,7 +204,7 @@ export default function AdminSidebar() {
         <ul className="flex flex-col gap-3">
           <li>
             <Link
-              href="/qevanora-control/panel#summary"
+              href="/admin/panel#summary"
               onClick={() => {
                 setActiveMenu("summary");
                 closeMobileSidebar();
