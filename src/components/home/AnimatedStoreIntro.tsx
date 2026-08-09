@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Product, TransactionTestimonial } from "@/types/catalog";
 
@@ -10,6 +10,7 @@ type RevealProps = {
   children: ReactNode;
   className?: string;
   delay?: number;
+  hero?: boolean;
 };
 
 type StoreLink = {
@@ -19,7 +20,7 @@ type StoreLink = {
   icon: ReactNode;
 };
 
-function Reveal({ children, className = "", delay = 0 }: RevealProps) {
+function Reveal({ children, className = "", delay = 0, hero = false }: RevealProps) {
   const elementRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
@@ -31,32 +32,34 @@ function Reveal({ children, className = "", delay = 0 }: RevealProps) {
       return;
     }
 
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.unobserve(entry.target);
-        }
+        if (!entry.isIntersecting) return;
+        setIsVisible(true);
+        observer.unobserve(entry.target);
       },
       {
-        threshold: 0.12,
-        rootMargin: "0px 0px -5% 0px",
+        threshold: hero ? 0.04 : 0.16,
+        rootMargin: hero ? "0px" : "0px 0px -8% 0px",
       },
     );
 
     observer.observe(element);
-
     return () => observer.disconnect();
-  }, []);
+  }, [hero]);
 
   return (
     <div
       ref={elementRef}
-      style={{ transitionDelay: `${delay}ms` }}
-      className={`${className} qev-home-reveal transform-gpu transition-[opacity,transform,filter] duration-[900ms] ease-[cubic-bezier(0.16,1,0.3,1)] motion-reduce:translate-y-0 motion-reduce:opacity-100 motion-reduce:blur-none ${
-        isVisible
-          ? "translate-y-0 opacity-100 blur-none"
-          : "translate-y-7 opacity-0 blur-[2px]"
+      style={{ "--qev-section-delay": `${delay}ms` } as CSSProperties}
+      className={`${className} qev-reference-reveal ${hero ? "qev-reference-hero" : ""} ${
+        isVisible ? "qev-reference-visible" : ""
       }`}
     >
       {children}
@@ -353,25 +356,25 @@ export default function AnimatedStoreIntro({
         <div className="absolute -right-24 top-[28rem] h-80 w-80 rounded-full bg-brand-500/10 blur-3xl dark:bg-brand-500/10" />
       </div>
 
-      <Reveal>
+      <Reveal hero>
         <section className="relative w-full min-w-0 max-w-full overflow-hidden py-6 sm:py-10 lg:py-14">
 
           <div className="grid w-full min-w-0 max-w-full items-center gap-10 md:gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-14">
             <div className="w-full min-w-0 max-w-full overflow-hidden lg:pr-2">
-              <span className="qevanora-kicker qev-kicker-float inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-brand-300">
+              <span className="qevanora-kicker qev-hero-sequence qev-hero-seq-1 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-brand-300">
                 <span className="h-2 w-2 rounded-full bg-success-500 motion-safe:animate-pulse" />
                 Produk digital terpercaya
               </span>
 
-              <h1 className="qevanora-title-metallic qev-title-shine mt-5 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
+              <h1 className="qevanora-title-metallic qev-hero-sequence qev-hero-seq-2 mt-5 max-w-2xl text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
                 QEVANORA OFFICIAL
               </h1>
 
-              <p className="mt-5 max-w-xl break-words text-sm leading-7 text-gray-600 dark:text-gray-300 sm:text-base">
+              <p className="qev-hero-sequence qev-hero-seq-3 mt-5 max-w-xl break-words text-sm leading-7 text-gray-600 dark:text-gray-300 sm:text-base">
                 menyediakan berbagai produk digital terpercaya dengan proses transaksi yang cepat, mudah, dan aman. Kami berkomitmen untuk memberikan pelayanan terbaik, kualitas produk yang terjamin, serta harga kompetitif yang tetap terjangkau untuk semua kalangan.
               </p>
 
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <div className="qev-hero-sequence qev-hero-seq-4 mt-7 flex flex-col gap-3 sm:flex-row">
                 <a
                   href="#produk-terbaru"
                   className="qevanora-gold-button inline-flex items-center justify-center rounded-xl px-5 py-3 text-sm font-semibold transition"
@@ -387,7 +390,7 @@ export default function AnimatedStoreIntro({
                 </Link>
               </div>
 
-              <div style={{ contain: "inline-size" }} className="mt-7 w-full min-w-0 max-w-full overflow-hidden border-y border-brand-500/20 py-3">
+              <div style={{ contain: "inline-size" }} className="qev-hero-sequence qev-hero-seq-5 mt-7 w-full min-w-0 max-w-full overflow-hidden border-y border-brand-500/20 py-3">
                 <div className="qevanora-marquee-track">
                   <span className="inline-flex shrink-0 items-center gap-3 px-8 text-sm font-medium text-gray-600 dark:text-gray-300">
                     <span className="text-brand-500">✦</span>
@@ -405,7 +408,7 @@ export default function AnimatedStoreIntro({
               <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,rgba(214,166,47,0.18),transparent_68%)] blur-2xl" />
 
               <div className="relative w-full min-w-0 max-w-full overflow-hidden">
-                <div className="qevanora-hero-frame qev-hero-float w-full min-w-0 max-w-full overflow-hidden">
+                <div className="qevanora-hero-frame qev-hero-visual w-full min-w-0 max-w-full overflow-hidden">
                   <Image
                     src="/images/logo/digie-store-home.png"
                     alt="Banner QEVANORA OFFICIAL"
@@ -416,7 +419,7 @@ export default function AnimatedStoreIntro({
                   />
                 </div>
 
-                <div style={{ contain: "inline-size" }} className="mt-5 w-full min-w-0 max-w-full overflow-hidden border-y border-brand-500/20 py-2.5">
+                <div style={{ contain: "inline-size" }} className="qev-hero-trust mt-5 w-full min-w-0 max-w-full overflow-hidden border-y border-brand-500/20 py-2.5">
                   <div className="qevanora-trust-track">
                     {["primary", "duplicate"].map((sequence) => (
                       <div
