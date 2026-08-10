@@ -23,6 +23,9 @@ type Topup = {
   created_at: string;
   paid_at?: string | null;
   expires_at?: string | null;
+  payment_provider?: string | null;
+  payment_method?: string | null;
+  checkout_url?: string | null;
 };
 
 type WalletPayload = {
@@ -119,6 +122,19 @@ export default function WalletCenter() {
     return () => window.removeEventListener("focus", onFocus);
   }, [loadWallet]);
 
+  useEffect(() => {
+    const hasPendingMidtrans = topups.some(
+      (topup) => topup.status === "pending" && topup.payment_provider === "midtrans"
+    );
+    if (!hasPendingMidtrans) return;
+
+    const timer = window.setInterval(() => {
+      void loadWallet();
+    }, 8000);
+
+    return () => window.clearInterval(timer);
+  }, [loadWallet, topups]);
+
   const requestTopup = async () => {
     if (submitting) return;
     setSubmitting(true);
@@ -136,17 +152,23 @@ export default function WalletCenter() {
         ok?: boolean;
         message?: string;
         error?: string;
-        topup?: { topup_code?: string };
+        topup?: { topup_code?: string; checkout_url?: string };
+        checkout_url?: string;
       };
 
       if (!response.ok || !payload.ok) {
         throw new Error(payload.error || "Permintaan top up gagal dibuat.");
       }
 
+      const checkoutUrl = payload.checkout_url || payload.topup?.checkout_url;
       setMessage(
-        `${payload.topup?.topup_code ? `Kode ${payload.topup.topup_code}. ` : ""}${payload.message || "Permintaan top up berhasil dibuat."}`
+        `${payload.topup?.topup_code ? `Kode ${payload.topup.topup_code}. ` : ""}${payload.message || "Pembayaran top up berhasil dibuat."}`
       );
       await loadWallet();
+
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
+      }
     } catch (topupError) {
       setError(topupError instanceof Error ? topupError.message : "Permintaan top up gagal dibuat.");
     } finally {
@@ -162,7 +184,7 @@ export default function WalletCenter() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-500">Dompet QEVANORA</p>
             <h4 className="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">Top Up Saldo</h4>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">
-              Untuk sementara top up memakai konfirmasi admin. Nanti bagian ini siap disambungkan langsung ke payment gateway tanpa mengubah sistem saldo.
+              Top up diproses otomatis melalui Midtrans. Setelah pembayaran terkonfirmasi oleh payment gateway, saldo QEVANORA akan masuk otomatis.
             </p>
           </div>
           <div className="rounded-xl border border-brand-500/15 bg-brand-500/[0.05] px-4 py-3 sm:min-w-44 sm:text-right">
@@ -191,7 +213,7 @@ export default function WalletCenter() {
             disabled={submitting}
             className="self-end rounded-xl bg-brand-500 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? "Membuat..." : "Buat Top Up"}
+            {submitting ? "Membuat Pembayaran..." : "Bayar via Midtrans"}
           </button>
         </div>
 
@@ -275,9 +297,21 @@ export default function WalletCenter() {
                   <div className="mt-3 flex items-end justify-between border-t border-gray-100 pt-3 dark:border-gray-800">
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       <p>Nominal {formatRupiah(topup.amount)}</p>
+                      {topup.payment_provider && <p className="mt-1">Gateway: {topup.payment_provider.toUpperCase()}</p>}
                       {topup.status === "pending" && topup.expires_at && <p className="mt-1">Berlaku sampai {formatDate(topup.expires_at)}</p>}
                     </div>
-                    <p className="font-bold text-gray-800 dark:text-white/90">{formatRupiah(topup.total_amount)}</p>
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="font-bold text-gray-800 dark:text-white/90">{formatRupiah(topup.total_amount)}</p>
+                      {topup.status === "pending" && topup.checkout_url && (
+                        <button
+                          type="button"
+                          onClick={() => { window.location.href = topup.checkout_url || "#"; }}
+                          className="rounded-lg bg-brand-500 px-3 py-2 text-[11px] font-bold text-white transition hover:bg-brand-600"
+                        >
+                          Bayar Sekarang
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </article>
               ))

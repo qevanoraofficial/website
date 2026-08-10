@@ -158,8 +158,8 @@ export default function AdminWalletTopups() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-300">Saldo QEVANORA</p>
-            <h2 className="mt-2 text-xl font-bold text-white">Konfirmasi Top Up Customer</h2>
-            <p className="mt-2 text-sm leading-6 text-gray-500">Konfirmasi hanya setelah pembayaran customer benar-benar kamu terima. Tombol konfirmasi langsung menambah saldo wallet.</p>
+            <h2 className="mt-2 text-xl font-bold text-white">Top Up Customer</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-500">Pembayaran Midtrans diproses otomatis. Tombol konfirmasi manual hanya tersedia untuk top up manual.</p>
           </div>
           <button type="button" onClick={() => void load()} disabled={loading} className="rounded-xl border border-brand-500/25 px-4 py-2.5 text-sm font-semibold text-brand-200 hover:bg-brand-500/10 disabled:opacity-50">Muat Ulang</button>
         </div>
@@ -195,7 +195,13 @@ export default function AdminWalletTopups() {
                   </div>
                 </div>
 
-                {topup.status === "pending" && (
+                {topup.status === "pending" && topup.payment_provider === "midtrans" && (
+                  <div className="mt-4 rounded-xl border border-brand-500/15 bg-brand-500/[0.06] p-3 text-sm text-brand-200">
+                    Pembayaran dikelola otomatis oleh Midtrans. Saldo akan masuk setelah webhook pembayaran terverifikasi.
+                  </div>
+                )}
+
+                {topup.status === "pending" && topup.payment_provider !== "midtrans" && (
                   <div className="mt-4 flex flex-col gap-2 border-t border-brand-500/10 pt-4 sm:flex-row sm:justify-end">
                     <button type="button" onClick={() => void updateTopup(topup, "cancel")} disabled={Boolean(busy)} className="rounded-xl border border-error-500/25 px-4 py-2.5 text-sm font-semibold text-error-300 hover:bg-error-500/10 disabled:opacity-50">
                       {busy === `cancel:${topup.id}` ? "Membatalkan..." : "Batalkan"}

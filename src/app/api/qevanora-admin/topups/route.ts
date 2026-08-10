@@ -62,6 +62,23 @@ export async function PATCH(request: NextRequest) {
 
     const admin = createAdminClient();
 
+    const { data: existingTopup, error: existingError } = await admin
+      .from("topups")
+      .select("id, status, payment_provider")
+      .eq("id", topupId)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+    if (!existingTopup) {
+      return response({ ok: false, error: "Top up tidak ditemukan." }, 404);
+    }
+    if (existingTopup.payment_provider === "midtrans") {
+      return response(
+        { ok: false, error: "Top up Midtrans diproses otomatis dan tidak boleh dikonfirmasi/batalkan manual." },
+        409
+      );
+    }
+
     if (action === "confirm") {
       const { data, error } = await admin.rpc("service_complete_topup", {
         p_topup_ref: topupId,
