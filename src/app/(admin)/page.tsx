@@ -1,5 +1,4 @@
 import AnimatedStoreIntro from "@/components/home/AnimatedStoreIntro";
-import StoreHoursStatus from "@/components/home/StoreHoursStatus";
 import { getProducts, getTestimonials } from "@/lib/catalog";
 import type { Metadata } from "next";
 
@@ -20,7 +19,6 @@ export default async function HomePage() {
 
   return (
     <>
-      <StoreHoursStatus />
       <AnimatedStoreIntro
         initialProducts={products}
         initialTestimonials={testimonials}

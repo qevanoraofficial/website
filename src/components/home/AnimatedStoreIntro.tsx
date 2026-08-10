@@ -6,6 +6,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Product, TransactionTestimonial } from "@/types/catalog";
 import { getProductCategories } from "@/lib/products";
+import StoreHoursStatus from "@/components/home/StoreHoursStatus";
 
 type RevealProps = {
   children: ReactNode;
@@ -443,6 +444,10 @@ export default function AnimatedStoreIntro({
             </div>
           </div>
         </section>
+      </Reveal>
+
+      <Reveal className="mt-5" delay={70}>
+        <StoreHoursStatus />
       </Reveal>
 
       <Reveal className="mt-5" delay={80}>

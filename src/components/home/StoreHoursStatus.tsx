@@ -111,7 +111,7 @@ export default function StoreHoursStatus() {
 
   if (!status) {
     return (
-      <section className="mb-5 animate-pulse rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <section className="mb-0 animate-pulse rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div className="h-5 w-36 rounded bg-gray-200 dark:bg-gray-800" />
         <div className="mt-3 h-8 w-52 rounded bg-gray-200 dark:bg-gray-800" />
       </section>
@@ -119,7 +119,7 @@ export default function StoreHoursStatus() {
   }
 
   return (
-    <section className="mb-5 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+    <section className="mb-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]">
         <div className="p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
