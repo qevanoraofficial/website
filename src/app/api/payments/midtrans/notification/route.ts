@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  assertMidtransEnvironmentSafety,
   type MidtransNotification,
   verifyMidtransNotificationSignature,
 } from "@/lib/midtrans";
@@ -25,6 +26,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const midtransEnvironment = assertMidtransEnvironmentSafety();
+
     if (!verifyMidtransNotificationSignature(payload)) {
       return jsonResponse({ ok: false, error: "invalid_signature" }, 403);
     }
@@ -59,6 +62,7 @@ export async function POST(request: NextRequest) {
 
     const commonMetadata = {
       gateway: "midtrans_snap",
+      midtrans_environment: midtransEnvironment,
       transaction_id: transactionId || null,
       transaction_status: transactionStatus,
       payment_type: paymentType || null,
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     const isSuccessful =
       statusCode === "200" &&
-      fraudStatus === "accept" &&
+      (!fraudStatus || fraudStatus === "accept") &&
       (transactionStatus === "settlement" || transactionStatus === "capture");
 
     if (isSuccessful) {

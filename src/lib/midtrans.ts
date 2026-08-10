@@ -21,31 +21,75 @@ export type MidtransNotification = {
   [key: string]: unknown;
 };
 
+export type MidtransEnvironment = "sandbox" | "production";
+
 function getServerKey() {
   const serverKey = (process.env.MIDTRANS_SERVER_KEY || "").trim();
   if (!serverKey) {
-    throw new Error(
-      "MIDTRANS_SERVER_KEY belum diatur di Vercel. Gunakan Server Key Midtrans Sandbox terlebih dahulu."
-    );
+    throw new Error("MIDTRANS_SERVER_KEY belum diatur di Vercel.");
   }
   return serverKey;
 }
 
-export function isMidtransProduction() {
-  return String(process.env.MIDTRANS_IS_PRODUCTION || "false").toLowerCase() === "true";
+export function getMidtransEnvironment(): MidtransEnvironment {
+  const raw = String(process.env.MIDTRANS_IS_PRODUCTION ?? "").trim().toLowerCase();
+  if (raw === "true") return "production";
+  if (raw === "false") return "sandbox";
+  throw new Error("MIDTRANS_IS_PRODUCTION wajib diatur ke true atau false.");
 }
 
-function snapBaseUrl() {
-  return isMidtransProduction()
+export function isMidtransProduction() {
+  return getMidtransEnvironment() === "production";
+}
+
+export function assertMidtransEnvironmentSafety() {
+  const environment = getMidtransEnvironment();
+  const vercelEnvironment = String(process.env.VERCEL_ENV || "").trim().toLowerCase();
+
+  // Fail closed on the live Vercel deployment: a Sandbox settlement must never
+  // be able to create spendable QEVANORA balance on the production website.
+  if (vercelEnvironment === "production" && environment !== "production") {
+    throw new Error(
+      "Top up dinonaktifkan: website Production masih memakai Midtrans Sandbox. Pasang Production Server Key lalu set MIDTRANS_IS_PRODUCTION=true."
+    );
+  }
+
+  return environment;
+}
+
+function snapBaseUrl(environment: MidtransEnvironment) {
+  return environment === "production"
     ? "https://app.midtrans.com"
     : "https://app.sandbox.midtrans.com";
 }
 
+export function getMidtransPublicStatus() {
+  let environment: MidtransEnvironment | "invalid" = "invalid";
+  try {
+    environment = getMidtransEnvironment();
+  } catch {
+    // Keep health output secret-free and descriptive.
+  }
+
+  const configured = Boolean(String(process.env.MIDTRANS_SERVER_KEY || "").trim());
+  const vercelEnvironment = String(process.env.VERCEL_ENV || "unknown").trim().toLowerCase();
+  const productionReady =
+    configured && environment === "production" && vercelEnvironment === "production";
+
+  return {
+    configured,
+    environment,
+    vercelEnvironment,
+    productionReady,
+  };
+}
+
 export async function createMidtransSnapTransaction(payload: Record<string, unknown>) {
+  const environment = assertMidtransEnvironmentSafety();
   const serverKey = getServerKey();
   const authorization = Buffer.from(`${serverKey}:`).toString("base64");
 
-  const response = await fetch(`${snapBaseUrl()}/snap/v1/transactions`, {
+  const response = await fetch(`${snapBaseUrl(environment)}/snap/v1/transactions`, {
     method: "POST",
     headers: {
       Accept: "application/json",

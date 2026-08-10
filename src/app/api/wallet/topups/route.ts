@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { assertSameOrigin } from "@/lib/order-session";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createMidtransSnapTransaction } from "@/lib/midtrans";
+import {
+  assertMidtransEnvironmentSafety,
+  createMidtransSnapTransaction,
+} from "@/lib/midtrans";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +54,7 @@ export async function POST(request: NextRequest) {
       return jsonResponse({ ok: false, error: "Akun QEVANORA tidak aktif." }, 403);
     }
 
+    const midtransEnvironment = assertMidtransEnvironmentSafety();
     const admin = createAdminClient();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
@@ -67,6 +71,7 @@ export async function POST(request: NextRequest) {
       p_metadata: {
         source: "qevanora_web",
         gateway: "midtrans_snap",
+        midtrans_environment: midtransEnvironment,
       },
     });
 
@@ -128,6 +133,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             source: "qevanora_web",
             gateway: "midtrans_snap",
+            midtrans_environment: midtransEnvironment,
             snap_token: payment.token,
           },
         })
@@ -156,6 +162,7 @@ export async function POST(request: NextRequest) {
           metadata: {
             source: "qevanora_web",
             gateway: "midtrans_snap",
+            midtrans_environment: midtransEnvironment,
             error: paymentError instanceof Error ? paymentError.message : "midtrans_create_failed",
           },
         })
