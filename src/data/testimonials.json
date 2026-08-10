@@ -1,20 +1,5 @@
 [
   {
-    "id": "tst_msn8onx8_87d4cb",
-    "status": "success",
-    "name": "guguga",
-    "productName": "FACEBOOK FRESH A2F ON - EMAIL AKSES",
-    "productPrice": 2500,
-    "quantity": 5,
-    "payment": "DANA",
-    "totalPrice": 10000,
-    "purchaseDate": "2026-08-10",
-    "imagePath": "storage/testimonials/tst_msn8onx8_87d4cb.jpg",
-    "image": "/api/media?path=storage%2Ftestimonials%2Ftst_msn8onx8_87d4cb.jpg",
-    "createdAt": "2026-08-10T13:00:25.245Z",
-    "updatedAt": "2026-08-10T13:00:25.245Z"
-  },
-  {
     "id": "tst_msjyq74i_d17ef7",
     "status": "success",
     "name": "Brando Edward Rumbayan",

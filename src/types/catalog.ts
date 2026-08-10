@@ -13,6 +13,17 @@ export type Product = {
   imagePath?: string;
   createdAt?: string;
   updatedAt?: string;
+  supplier?: "follow" | "nokos" | "alfaprem" | "manual";
+  supplierProductId?: string;
+  serviceType?: string;
+  providerCategory?: string;
+  minQuantity?: number;
+  maxQuantity?: number;
+  refill?: boolean;
+  cancel?: boolean;
+  ratePer1000?: number;
+  providerRate?: number;
+  providerCurrency?: string;
 };
 
 export type TransactionTestimonial = {

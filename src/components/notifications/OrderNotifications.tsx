@@ -15,6 +15,9 @@ type UserOrder = {
   createdAt: string;
   updatedAt?: string;
   error?: string;
+  supplier?: string;
+  target?: string;
+  quantity?: number;
 };
 
 const statusPresentation: Record<
@@ -221,10 +224,17 @@ export default function OrderNotifications() {
 
       {orders.map((order) => {
         const presentation = statusPresentation[order.status];
+        const isFollow = order.supplier === "follow";
         const message =
           order.status === "failed" && order.error
             ? order.error
-            : presentation.message;
+            : isFollow && order.status === "accepted"
+              ? "Order sudah dibayar dan sedang diproses otomatis oleh Follow.co.id. Status akan diperbarui otomatis."
+              : isFollow && order.status === "completed"
+                ? "Order Follow.co.id sudah selesai diproses."
+                : isFollow && order.status === "cancelled"
+                  ? "Order supplier dibatalkan/gagal. Saldo QEVANORA dikembalikan otomatis sesuai status pembayaran."
+                  : presentation.message;
 
         return (
           <article
@@ -255,6 +265,13 @@ export default function OrderNotifications() {
             <p className="mt-4 text-sm leading-6 text-gray-500 dark:text-gray-400">
               {message}
             </p>
+
+            {isFollow && (order.target || order.quantity) && (
+              <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-xs leading-5 text-gray-500 dark:border-gray-800 dark:bg-white/[0.02] dark:text-gray-400">
+                {order.target && <p className="break-all">Target: {order.target}</p>}
+                {order.quantity ? <p>Jumlah: {Number(order.quantity).toLocaleString("id-ID")}</p> : null}
+              </div>
+            )}
 
             <div className="mt-5 flex items-end justify-between gap-4 border-t border-gray-200 pt-4 dark:border-gray-800">
               <div>

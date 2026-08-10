@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireBotAuthorization } from "@/lib/bot-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mapOrderForBot } from "@/lib/supabase/order-mapper";
+import { syncRecentFollowOrders } from "@/lib/follow-order-sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,11 +18,14 @@ export async function GET(request: Request) {
   try {
     requireBotAuthorization(request);
     const admin = createAdminClient();
+    await syncRecentFollowOrders(admin).catch((error) => {
+      console.error("[follow] sinkron status bot gagal", error);
+    });
 
     const { data: orderRows, error } = await admin
       .from("orders")
       .select(
-        "id, order_code, user_id, status, created_at, updated_at, cancel_reason, customer_data, order_items(supplier_product_id, product_name, unit_price, input_data)"
+        "id, order_code, user_id, status, supplier, created_at, updated_at, cancel_reason, customer_data, order_items(supplier_product_id, product_name, unit_price, input_data)"
       )
       .order("created_at", { ascending: false })
       .limit(1000);
@@ -97,7 +101,7 @@ export async function POST(request: Request) {
 
     let orderQuery = admin
       .from("orders")
-      .select("id, order_code, status, payment_status, payment_method, updated_at");
+      .select("id, order_code, status, payment_status, payment_method, supplier, updated_at");
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId);
     orderQuery = isUuid ? orderQuery.eq("id", orderId) : orderQuery.eq("order_code", orderId);
@@ -108,6 +112,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { ok: false, error: "Order tidak ditemukan." },
         { status: 404 }
+      );
+    }
+
+    if (existingOrder.supplier === "follow") {
+      return NextResponse.json(
+        { ok: false, error: "Order Follow.co.id dikendalikan otomatis oleh status supplier." },
+        { status: 409 }
       );
     }
 

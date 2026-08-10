@@ -61,6 +61,17 @@ function normalizeProduct(value: Product): Product {
     image: mediaUrl(value.imagePath, value.image),
     createdAt: text(value.createdAt, 80),
     updatedAt: text(value.updatedAt, 80),
+    supplier: value.supplier,
+    supplierProductId: text(value.supplierProductId, 120),
+    serviceType: text(value.serviceType, 120),
+    providerCategory: text(value.providerCategory, 240),
+    minQuantity: Math.max(0, Math.trunc(number(value.minQuantity))),
+    maxQuantity: Math.max(0, Math.trunc(number(value.maxQuantity))),
+    refill: Boolean(value.refill),
+    cancel: Boolean(value.cancel),
+    ratePer1000: Math.max(0, number(value.ratePer1000)),
+    providerRate: Math.max(0, number(value.providerRate)),
+    providerCurrency: text(value.providerCurrency, 20),
   };
 }
 

@@ -20,6 +20,7 @@ type OrderRow = {
   created_at: string;
   updated_at: string;
   cancel_reason?: string | null;
+  supplier?: string | null;
   customer_data?: Record<string, unknown> | null;
   order_items?: OrderItemRow[] | null;
 };
@@ -46,6 +47,9 @@ export function mapOrderForCustomer(row: OrderRow) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     error: row.cancel_reason || "",
+    supplier: String(row.supplier || "manual"),
+    target: String(input.target || ""),
+    quantity: Number(input.quantity || 1),
   };
 }
 
@@ -75,5 +79,8 @@ export function mapOrderForBot(
     createdAt: mapped.createdAt,
     updatedAt: mapped.updatedAt,
     error: mapped.error,
+    supplier: mapped.supplier,
+    target: mapped.target,
+    quantity: mapped.quantity,
   };
 }
