@@ -77,8 +77,6 @@ export default async function TestimonialsPage() {
               <dl className="mt-5 space-y-3 text-sm leading-6">
                 {[
                   ["Nama", valueOrDash(testimonial.name)],
-                  ["Telegram", valueOrDash(testimonial.telegram)],
-                  ["WhatsApp", valueOrDash(testimonial.whatsapp)],
                   ["Nama Produk", valueOrDash(testimonial.productName)],
                   ["Harga Produk", formatRupiah(testimonial.productPrice)],
                   ["Jumlah Beli", valueOrDash(testimonial.quantity)],
@@ -87,7 +85,7 @@ export default async function TestimonialsPage() {
                   ["Tanggal Beli", valueOrDash(testimonial.purchaseDate)],
                 ].map(([label, value], fieldIndex) => (
                   <div key={label}>
-                    {fieldIndex === 3 && (
+                    {fieldIndex === 1 && (
                       <div className="my-5 border-t border-gray-200 dark:border-gray-800" />
                     )}
                     <div className="grid grid-cols-[120px_1fr] gap-3">
@@ -101,6 +99,29 @@ export default async function TestimonialsPage() {
                   </div>
                 ))}
               </dl>
+
+              <div className="mt-6 border-t border-gray-200 pt-5 text-sm leading-6 text-gray-600 dark:border-gray-800 dark:text-gray-300">
+                <p className="font-semibold text-gray-900 dark:text-white">
+                  🎉 TERIMA KASIH TELAH ORDER!
+                </p>
+                <p className="mt-3">
+                  Terima kasih sudah mempercayakan kebutuhan kamu kepada Qevanora Official. 💙
+                </p>
+                <p className="mt-3">
+                  Pesanan kamu sangat berarti bagi kami. Semoga produk/layanan yang kamu beli sesuai harapan dan memberikan pengalaman terbaik. ✨
+                </p>
+                <p className="mt-3">
+                  Jika ada kendala, pertanyaan, atau membutuhkan bantuan setelah pembelian, jangan ragu untuk menghubungi kami kembali.
+                </p>
+                <p className="mt-3">
+                  ⭐ Jangan lupa simpan kontak kami dan nantikan produk serta promo menarik lainnya!
+                </p>
+                <p className="mt-4 font-semibold text-gray-900 dark:text-white">
+                  Qevanora Official
+                  <br />
+                  Trusted • Fast • Professional 🚀
+                </p>
+              </div>
             </div>
           </article>
         );

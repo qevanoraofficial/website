@@ -68,8 +68,6 @@ export async function POST(request: NextRequest) {
   try {
     const form = await request.formData();
     const name = cleanText(form.get("name"), 120);
-    const telegram = cleanText(form.get("telegram"), 120);
-    const whatsapp = cleanText(form.get("whatsapp"), 80);
     const productName = cleanText(form.get("productName"), 180);
     const payment = cleanText(form.get("payment"), 100);
     const purchaseDate = cleanText(form.get("purchaseDate"), 100);
@@ -118,8 +116,6 @@ export async function POST(request: NextRequest) {
       id,
       status: "success",
       name,
-      telegram,
-      whatsapp,
       productName,
       productPrice,
       quantity,

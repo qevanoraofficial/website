@@ -1110,27 +1110,6 @@ export default function AdminDashboard({
                   />
                 </label>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <label>
-                    <span className={labelClass}>Telegram</span>
-                    <input
-                      name="telegram"
-                      maxLength={120}
-                      className={inputClass}
-                      placeholder="Opsional"
-                    />
-                  </label>
-                  <label>
-                    <span className={labelClass}>WhatsApp</span>
-                    <input
-                      name="whatsapp"
-                      maxLength={80}
-                      className={inputClass}
-                      placeholder="Opsional"
-                    />
-                  </label>
-                </div>
-
                 <label>
                   <span className={labelClass}>Nama produk</span>
                   <input
