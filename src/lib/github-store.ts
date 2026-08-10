@@ -31,8 +31,8 @@ function cleanEnv(name: string, fallback = ""): string {
 
 export function getRepositoryConfig() {
   const token = cleanEnv("GITHUB_TOKEN");
-  const owner = cleanEnv("GITHUB_OWNER", "digiestore");
-  const repo = cleanEnv("GITHUB_REPO", "Digistore");
+  const owner = cleanEnv("GITHUB_OWNER", "qevanoraofficial");
+  const repo = cleanEnv("GITHUB_REPO", "website");
   const branch = cleanEnv("GITHUB_BRANCH", "main");
 
   if (!token) {
@@ -221,6 +221,15 @@ export async function writeRepositoryFile(
   });
 
   if (!response.ok) {
+    if (response.status === 404) {
+      const { owner, repo } = getRepositoryConfig();
+      const details = (await response.text()).slice(0, 300);
+      throw new Error(
+        `GitHub gagal menyimpan ${path} (404) ke ${owner}/${repo}. ` +
+          `Pastikan GITHUB_TOKEN memiliki akses Contents: Read and write ke repository tersebut, ` +
+          `GITHUB_OWNER/GITHUB_REPO benar, dan branch ${branch} tersedia. Detail: ${details}`,
+      );
+    }
     throw await githubError(response, `GitHub gagal menyimpan ${path}`);
   }
 }
