@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { readAndClearOrderPageNotice } from "@/lib/order-notifications";
 
-type OrderStatus = "pending" | "completed" | "cancelled" | "failed";
+type OrderStatus = "pending" | "accepted" | "completed" | "cancelled" | "failed";
 
 type UserOrder = {
   id: string;
@@ -28,7 +28,13 @@ const statusPresentation: Record<
   pending: {
     title: "Order sedang dikonfirmasi",
     message:
-      "Admin sedang memeriksa order kamu melalui WebTools. Status akan berubah otomatis setelah admin menyelesaikan atau membatalkan order.",
+      "Admin sedang memeriksa order kamu. Status akan berubah otomatis saat order diterima, selesai, atau dibatalkan.",
+    titleClassName: "text-brand-500 dark:text-brand-400",
+  },
+  accepted: {
+    title: "Order diterima",
+    message:
+      "Admin sudah menerima order kamu dan sedang memprosesnya. Status akan berubah otomatis setelah order selesai atau dibatalkan.",
     titleClassName: "text-brand-500 dark:text-brand-400",
   },
   completed: {

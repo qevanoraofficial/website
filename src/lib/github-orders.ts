@@ -8,6 +8,7 @@ import {
 
 export type StoredOrderStatus =
   | "pending"
+  | "accepted"
   | "completed"
   | "cancelled"
   | "failed";
@@ -78,6 +79,18 @@ export async function setStoredOrderStatus(
         const index = current.findIndex((order) => order.id === orderId);
         if (index < 0) {
           throw new Error("ORDER_NOT_FOUND");
+        }
+
+        const previousStatus = current[index].status;
+        const canTransition =
+          previousStatus === status ||
+          (previousStatus === "pending" &&
+            ["accepted", "completed", "cancelled", "failed"].includes(status)) ||
+          (previousStatus === "accepted" &&
+            ["completed", "cancelled", "failed"].includes(status));
+
+        if (!canTransition) {
+          throw new Error(`ORDER_STATUS_LOCKED:${previousStatus}`);
         }
 
         const updated: StoredOrder = {

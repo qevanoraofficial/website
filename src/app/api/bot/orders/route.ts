@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     const orderId = String(body.orderId || "").trim().slice(0, 120);
     const status = String(body.status || "").trim() as StoredOrderStatus;
 
-    if (!orderId || !["completed", "cancelled"].includes(status)) {
+    if (!orderId || !["accepted", "completed", "cancelled"].includes(status)) {
       return NextResponse.json(
         { ok: false, error: "Order ID atau status tidak valid." },
         { status: 400 },
@@ -76,6 +76,17 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === "BOT_UNAUTHORIZED") {
       return unauthorizedResponse();
+    }
+
+    if (error instanceof Error && error.message.startsWith("ORDER_STATUS_LOCKED:")) {
+      const currentStatus = error.message.split(":")[1] || "unknown";
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Status order sudah ${currentStatus} dan tidak dapat diubah ke status tersebut.`,
+        },
+        { status: 409, headers: { "Cache-Control": "no-store" } },
+      );
     }
 
     return NextResponse.json(
