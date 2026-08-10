@@ -1,180 +1,150 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProducts } from "@/lib/catalog";
-import {
-  createPendingOrder,
-  getStoredOrdersForOwner,
-} from "@/lib/github-orders";
-import type { StoredOrder } from "@/lib/github-orders";
-import {
-  assertSameOrigin,
-  createOrderOwnerKey,
-  createOrderSessionToken,
-  readOrderSessionToken,
-  setOrderSessionCookie,
-} from "@/lib/order-session";
+import { assertSameOrigin } from "@/lib/order-session";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { mapOrderForCustomer } from "@/lib/supabase/order-mapper";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type OrderRequest = {
   productId?: string;
-  profile?: {
-    name?: string;
-    telegram?: string;
-    whatsapp?: string;
-  };
 };
 
 function clean(value: unknown, maxLength: number): string {
   return String(value || "").trim().slice(0, maxLength);
 }
 
-function makeOrderId(): string {
-  return `ord_${Date.now().toString(36)}_${crypto
-    .randomUUID()
-    .replaceAll("-", "")
-    .slice(0, 8)}`;
-}
-
-function jsonResponse(
-  payload: Record<string, unknown>,
-  status: number,
-  sessionToken?: string,
-): NextResponse {
-  const response = NextResponse.json(payload, {
+function jsonResponse(payload: Record<string, unknown>, status: number) {
+  return NextResponse.json(payload, {
     status,
-    headers: {
-      "Cache-Control": "no-store, max-age=0",
-    },
+    headers: { "Cache-Control": "no-store, max-age=0" },
   });
-
-  if (sessionToken) {
-    setOrderSessionCookie(response, sessionToken);
-  }
-
-  return response;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const token = readOrderSessionToken(request);
+    const supabase = await createClient();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
 
-    if (!token) {
+    if (userError || !userData.user) {
       return jsonResponse({ ok: true, orders: [] }, 200);
     }
 
-    const ownerKey = createOrderOwnerKey(token);
-    const orders = await getStoredOrdersForOwner(ownerKey);
+    const { data, error } = await supabase
+      .from("orders")
+      .select(
+        "id, order_code, status, created_at, updated_at, cancel_reason, order_items(supplier_product_id, product_name, unit_price, input_data)"
+      )
+      .eq("user_id", userData.user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
 
     return jsonResponse(
       {
         ok: true,
-        orders: orders.map((order) => ({
-          id: order.id,
-          productId: order.productId,
-          productName: order.productName,
-          categoryName: order.categoryName,
-          price: order.price,
-          status: order.status,
-          createdAt: order.createdAt,
-          updatedAt: order.updatedAt,
-          error: order.error || "",
-        })),
+        orders: (data || []).map((row) => mapOrderForCustomer(row)),
       },
-      200,
+      200
     );
   } catch (error) {
     return jsonResponse(
       {
         ok: false,
         error:
-          error instanceof Error
-            ? error.message
-            : "Status order gagal dibaca.",
+          error instanceof Error ? error.message : "Status order gagal dibaca.",
       },
-      500,
+      500
     );
   }
 }
 
 export async function POST(request: NextRequest) {
-  let sessionToken = readOrderSessionToken(request) || "";
-
   try {
     assertSameOrigin(request);
 
-    const body = (await request.json()) as OrderRequest;
-    const productId = clean(body.productId, 80);
-    const customerName = clean(body.profile?.name, 80);
-    const telegram = clean(body.profile?.telegram, 80);
-    const whatsapp = clean(body.profile?.whatsapp, 40);
+    const supabase = await createClient();
+    const { data: userData, error: userError } = await supabase.auth.getUser();
 
-    if (!productId || !customerName || !whatsapp) {
+    if (userError || !userData.user) {
       return jsonResponse(
-        {
-          ok: false,
-          error: "Nama, WhatsApp, dan produk wajib diisi.",
-        },
-        400,
-        sessionToken || undefined,
+        { ok: false, error: "Silakan masuk ke akun QEVANORA terlebih dahulu." },
+        401
       );
     }
 
-    const product = (await getProducts()).find((item) => item.id === productId);
+    const body = (await request.json()) as OrderRequest;
+    const productId = clean(body.productId, 80);
+
+    if (!productId) {
+      return jsonResponse({ ok: false, error: "Produk wajib dipilih." }, 400);
+    }
+
+    const [{ data: profile }, products] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("display_name, phone, telegram_id, status")
+        .eq("user_id", userData.user.id)
+        .single(),
+      getProducts(),
+    ]);
+
+    if (!profile || profile.status !== "active") {
+      return jsonResponse({ ok: false, error: "Akun QEVANORA tidak aktif." }, 403);
+    }
+
+    if (!profile.display_name?.trim() || !profile.phone?.trim()) {
+      return jsonResponse(
+        { ok: false, error: "Lengkapi Nama dan WhatsApp pada halaman Profile." },
+        400
+      );
+    }
+
+    const product = products.find((item) => item.id === productId);
 
     if (!product || product.active === false) {
-      return jsonResponse(
-        { ok: false, error: "Produk tidak ditemukan." },
-        404,
-        sessionToken || undefined,
-      );
+      return jsonResponse({ ok: false, error: "Produk tidak ditemukan." }, 404);
     }
 
     if (Number(product.stock) <= 0) {
-      return jsonResponse(
-        { ok: false, error: "Stok produk sedang habis." },
-        409,
-        sessionToken || undefined,
-      );
+      return jsonResponse({ ok: false, error: "Stok produk sedang habis." }, 409);
     }
 
-    if (!sessionToken) {
-      sessionToken = createOrderSessionToken();
+    const admin = createAdminClient();
+    const { data, error } = await admin.rpc("service_create_catalog_order", {
+      p_user_id: userData.user.id,
+      p_product_id: product.id,
+      p_product_name: product.name,
+      p_category_name: product.categoryName,
+      p_price: Math.max(0, Math.round(Number(product.price) || 0)),
+      p_customer_data: {
+        name: profile.display_name,
+        whatsapp: profile.phone,
+        telegram: profile.telegram_id || "",
+        email: userData.user.email || "",
+      },
+      p_supplier: "manual",
+    });
+
+    if (error) throw error;
+
+    const created = Array.isArray(data) ? data[0] : data;
+    if (!created?.order_code) {
+      throw new Error("Order Supabase gagal dibuat.");
     }
-
-    const ownerKey = createOrderOwnerKey(sessionToken);
-    const orderId = makeOrderId();
-    const createdAt = new Date().toISOString();
-
-    const order: StoredOrder = {
-      id: orderId,
-      ownerKey,
-      productId: product.id,
-      productName: product.name,
-      categoryName: product.categoryName,
-      price: Number(product.price) || 0,
-      customerName,
-      whatsapp,
-      telegram,
-      status: "pending",
-      createdAt,
-      updatedAt: createdAt,
-    };
-
-    // Order disimpan langsung ke GitHub dan selanjutnya dikelola dari WebTools.
-    // Telegram Bot tidak lagi menjadi bagian dari proses checkout.
-    await createPendingOrder(order);
 
     return jsonResponse(
       {
         ok: true,
-        orderId,
-        createdAt,
+        orderId: created.order_code,
+        createdAt: created.created_at,
         status: "pending",
         message: "Order berhasil dibuat dan sedang menunggu konfirmasi admin.",
       },
-      201,
-      sessionToken,
+      201
     );
   } catch (error) {
     return jsonResponse(
@@ -185,8 +155,7 @@ export async function POST(request: NextRequest) {
             ? error.message
             : "Order gagal disimpan. Silakan coba kembali.",
       },
-      500,
-      sessionToken || undefined,
+      500
     );
   }
 }

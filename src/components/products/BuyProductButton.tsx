@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { readCustomerProfile } from "@/lib/customer-profile";
 import { setOrderPageNotice } from "@/lib/order-notifications";
+import { createClient } from "@/lib/supabase/client";
 
 type BuyProductButtonProps = {
   productId: string;
@@ -35,13 +36,22 @@ export default function BuyProductButton({
       return;
     }
 
+    const supabase = createClient();
+    const { data: userData } = await supabase.auth.getUser();
+
+    if (!userData.user) {
+      setOrderPageNotice("Silakan masuk ke akun QEVANORA terlebih dahulu.");
+      router.push("/login");
+      return;
+    }
+
     const profile = readCustomerProfile();
 
     if (!profile) {
       setOrderPageNotice(
         "Lengkapi Nama dan WhatsApp pada halaman Profile Account terlebih dahulu."
       );
-      openNotifications();
+      router.push("/profile");
       return;
     }
 

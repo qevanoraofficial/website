@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireBotAuthorization } from "@/lib/bot-auth";
-import {
-  getStoredOrders,
-  setStoredOrderStatus,
-  type StoredOrderStatus,
-} from "@/lib/github-orders";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { mapOrderForBot } from "@/lib/supabase/order-mapper";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,18 +9,54 @@ export const dynamic = "force-dynamic";
 function unauthorizedResponse() {
   return NextResponse.json(
     { ok: false, error: "API secret WebTools tidak valid." },
-    { status: 401, headers: { "Cache-Control": "no-store" } },
+    { status: 401, headers: { "Cache-Control": "no-store" } }
   );
 }
 
 export async function GET(request: Request) {
   try {
     requireBotAuthorization(request);
-    const orders = await getStoredOrders();
+    const admin = createAdminClient();
+
+    const { data: orderRows, error } = await admin
+      .from("orders")
+      .select(
+        "id, order_code, user_id, status, created_at, updated_at, cancel_reason, customer_data, order_items(supplier_product_id, product_name, unit_price, input_data)"
+      )
+      .order("created_at", { ascending: false })
+      .limit(1000);
+
+    if (error) throw error;
+
+    const userIds = Array.from(
+      new Set((orderRows || []).map((row) => row.user_id).filter(Boolean))
+    );
+
+    const profileMap = new Map<
+      string,
+      { display_name?: string | null; phone?: string | null; telegram_id?: string | null }
+    >();
+
+    if (userIds.length) {
+      const { data: profiles, error: profileError } = await admin
+        .from("profiles")
+        .select("user_id, display_name, phone, telegram_id")
+        .in("user_id", userIds);
+
+      if (profileError) throw profileError;
+      for (const profile of profiles || []) {
+        profileMap.set(profile.user_id, profile);
+      }
+    }
 
     return NextResponse.json(
-      { ok: true, orders },
-      { headers: { "Cache-Control": "no-store" } },
+      {
+        ok: true,
+        orders: (orderRows || []).map((row) =>
+          mapOrderForBot(row, profileMap.get(row.user_id))
+        ),
+      },
+      { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
     if (error instanceof Error && error.message === "BOT_UNAUTHORIZED") {
@@ -36,7 +69,7 @@ export async function GET(request: Request) {
         error:
           error instanceof Error ? error.message : "Daftar order gagal dibaca.",
       },
-      { status: 500, headers: { "Cache-Control": "no-store" } },
+      { status: 500, headers: { "Cache-Control": "no-store" } }
     );
   }
 }
@@ -50,54 +83,61 @@ export async function POST(request: Request) {
       error?: unknown;
     };
     const orderId = String(body.orderId || "").trim().slice(0, 120);
-    const status = String(body.status || "").trim() as StoredOrderStatus;
+    const status = String(body.status || "").trim();
 
     if (!orderId || !["accepted", "completed", "cancelled"].includes(status)) {
       return NextResponse.json(
         { ok: false, error: "Order ID atau status tidak valid." },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
-    const order = await setStoredOrderStatus(
-      orderId,
-      status,
-      String(body.error || "").trim().slice(0, 500),
-    );
+    const admin = createAdminClient();
+    const { data, error } = await admin.rpc("service_set_order_status", {
+      p_order_ref: orderId,
+      p_status: status,
+      p_error: String(body.error || "").trim().slice(0, 500),
+    });
 
-    if (!order) {
-      return NextResponse.json(
-        { ok: false, error: "Order tidak ditemukan." },
-        { status: 404 },
-      );
+    if (error) {
+      const message = error.message || "";
+      if (message.includes("order_not_found")) {
+        return NextResponse.json(
+          { ok: false, error: "Order tidak ditemukan." },
+          { status: 404 }
+        );
+      }
+      if (message.includes("order_status_locked")) {
+        return NextResponse.json(
+          { ok: false, error: "Status order sudah final dan tidak dapat diubah." },
+          { status: 409 }
+        );
+      }
+      throw error;
     }
 
-    return NextResponse.json({ ok: true, order });
+    const updated = Array.isArray(data) ? data[0] : data;
+
+    return NextResponse.json({
+      ok: true,
+      order: {
+        id: updated?.order_code || orderId,
+        status,
+        updatedAt: updated?.updated_at || new Date().toISOString(),
+      },
+    });
   } catch (error) {
     if (error instanceof Error && error.message === "BOT_UNAUTHORIZED") {
       return unauthorizedResponse();
-    }
-
-    if (error instanceof Error && error.message.startsWith("ORDER_STATUS_LOCKED:")) {
-      const currentStatus = error.message.split(":")[1] || "unknown";
-      return NextResponse.json(
-        {
-          ok: false,
-          error: `Status order sudah ${currentStatus} dan tidak dapat diubah ke status tersebut.`,
-        },
-        { status: 409, headers: { "Cache-Control": "no-store" } },
-      );
     }
 
     return NextResponse.json(
       {
         ok: false,
         error:
-          error instanceof Error
-            ? error.message
-            : "Status order gagal diperbarui.",
+          error instanceof Error ? error.message : "Status order gagal diperbarui.",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
