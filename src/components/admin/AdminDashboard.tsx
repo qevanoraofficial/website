@@ -7,8 +7,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Product, TransactionTestimonial } from "@/types/catalog";
 import type { VisitorSummary } from "@/lib/visitor-stats";
 import type { MemberSummary } from "@/lib/member-stats";
+import AdminWalletTopups from "@/components/admin/AdminWalletTopups";
 
-type DashboardTab = "summary" | "products" | "testimonials";
+type DashboardTab = "summary" | "saldo" | "products" | "testimonials";
 
 type AdminDashboardProps = {
   initialProducts: Product[];
@@ -42,6 +43,10 @@ function safeImage(image?: string): string {
 }
 
 function tabFromHash(hash: string): DashboardTab {
+  if (hash === "saldo") {
+    return "saldo";
+  }
+
   if (
     hash === "add-product" ||
     hash === "delete-product" ||
@@ -575,6 +580,8 @@ export default function AdminDashboard({
         )}
 
 
+
+        {activeTab === "saldo" && <AdminWalletTopups />}
 
         {activeTab === "summary" && (
           <section id="summary" className="mt-6 space-y-6 scroll-mt-24">

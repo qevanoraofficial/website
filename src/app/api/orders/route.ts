@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 type OrderRequest = {
   productId?: string;
+  paymentMethod?: "wallet" | "manual";
 };
 
 function clean(value: unknown, maxLength: number): string {
@@ -78,18 +79,24 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json()) as OrderRequest;
     const productId = clean(body.productId, 80);
+    const paymentMethod = body.paymentMethod === "wallet" ? "wallet" : "manual";
 
     if (!productId) {
       return jsonResponse({ ok: false, error: "Produk wajib dipilih." }, 400);
     }
 
-    const [{ data: profile }, products] = await Promise.all([
+    const [{ data: profile }, products, { data: wallet }] = await Promise.all([
       supabase
         .from("profiles")
         .select("display_name, phone, telegram_id, status")
         .eq("user_id", userData.user.id)
         .single(),
       getProducts(),
+      supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", userData.user.id)
+        .maybeSingle(),
     ]);
 
     if (!profile || profile.status !== "active") {
@@ -113,13 +120,25 @@ export async function POST(request: NextRequest) {
       return jsonResponse({ ok: false, error: "Stok produk sedang habis." }, 409);
     }
 
+    const price = Math.max(0, Math.round(Number(product.price) || 0));
+
+    if (paymentMethod === "wallet" && Number(wallet?.balance || 0) < price) {
+      return jsonResponse(
+        {
+          ok: false,
+          error: `Saldo QEVANORA tidak cukup. Saldo kamu Rp${new Intl.NumberFormat("id-ID").format(Number(wallet?.balance || 0))}.`,
+        },
+        409
+      );
+    }
+
     const admin = createAdminClient();
     const { data, error } = await admin.rpc("service_create_catalog_order", {
       p_user_id: userData.user.id,
       p_product_id: product.id,
       p_product_name: product.name,
       p_category_name: product.categoryName,
-      p_price: Math.max(0, Math.round(Number(product.price) || 0)),
+      p_price: price,
       p_customer_data: {
         name: profile.display_name,
         whatsapp: profile.phone,
@@ -132,8 +151,37 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
 
     const created = Array.isArray(data) ? data[0] : data;
-    if (!created?.order_code) {
+    if (!created?.order_code || !created?.order_id) {
       throw new Error("Order Supabase gagal dibuat.");
+    }
+
+    let newBalance: number | undefined;
+
+    if (paymentMethod === "wallet") {
+      const { data: paymentData, error: paymentError } = await admin.rpc(
+        "service_pay_order_with_wallet",
+        { p_order_id: created.order_id }
+      );
+
+      if (paymentError) {
+        await admin.rpc("service_set_order_status", {
+          p_order_ref: created.order_code,
+          p_status: "failed",
+          p_error: paymentError.message || "Pembayaran saldo gagal.",
+        });
+
+        const message = paymentError.message || "";
+        if (message.includes("insufficient_balance")) {
+          return jsonResponse(
+            { ok: false, error: "Saldo QEVANORA tidak cukup untuk membayar order ini." },
+            409
+          );
+        }
+        throw paymentError;
+      }
+
+      const paid = Array.isArray(paymentData) ? paymentData[0] : paymentData;
+      newBalance = Number(paid?.new_balance || 0);
     }
 
     return jsonResponse(
@@ -142,7 +190,12 @@ export async function POST(request: NextRequest) {
         orderId: created.order_code,
         createdAt: created.created_at,
         status: "pending",
-        message: "Order berhasil dibuat dan sedang menunggu konfirmasi admin.",
+        paymentMethod,
+        ...(typeof newBalance === "number" ? { newBalance } : {}),
+        message:
+          paymentMethod === "wallet"
+            ? `Order ${created.order_code} berhasil dibayar dengan Saldo QEVANORA dan sedang menunggu konfirmasi admin.`
+            : `Order ${created.order_code} berhasil dibuat dan sedang menunggu konfirmasi admin.`,
       },
       201
     );

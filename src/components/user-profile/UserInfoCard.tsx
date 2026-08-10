@@ -121,9 +121,18 @@ export default function UserInfoCard() {
       window.setTimeout(loadAccount, 0);
     });
 
+    const handleWalletUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ balance?: number }>).detail;
+      if (typeof detail?.balance === "number") {
+        setBalance(detail.balance);
+      }
+    };
+    window.addEventListener("qevanora-wallet-updated", handleWalletUpdated);
+
     return () => {
       active = false;
       authListener.subscription.unsubscribe();
+      window.removeEventListener("qevanora-wallet-updated", handleWalletUpdated);
     };
   }, [supabase]);
 
@@ -245,6 +254,7 @@ export default function UserInfoCard() {
         <div className="rounded-xl border border-brand-500/15 bg-brand-500/[0.05] p-4">
           <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Saldo QEVANORA</p>
           <p className="mt-2 text-2xl font-bold text-brand-500">{formatRupiah(balance)}</p>
+          <a href="#wallet-center" className="mt-2 inline-flex text-xs font-semibold text-brand-500 hover:text-brand-600">Top Up & Riwayat Saldo →</a>
         </div>
         <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
           <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Email Akun</p>

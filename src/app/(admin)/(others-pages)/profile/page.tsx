@@ -1,5 +1,6 @@
 import UserInfoCard from "@/components/user-profile/UserInfoCard";
 import UserMetaCard from "@/components/user-profile/UserMetaCard";
+import WalletCenter from "@/components/wallet/WalletCenter";
 import { Metadata } from "next";
 import React from "react";
 
@@ -19,6 +20,7 @@ export default function Profile() {
         <div className="space-y-6">
           <UserMetaCard />
           <UserInfoCard />
+          <WalletCenter />
         </div>
       </div>
     </div>

@@ -7,9 +7,11 @@ import { useSidebar } from "@/context/SidebarContext";
 import DashboardIcon from "@/icons/grid.svg";
 import ProductIcon from "@/icons/product.svg";
 import TestimonialIcon from "@/icons/testimonial.svg";
+import WalletIcon from "@/icons/dollar-line.svg";
 
 type AdminMenuKey =
   | "summary"
+  | "saldo"
   | "add-product"
   | "delete-product"
   | "add-stock"
@@ -75,6 +77,7 @@ function readActiveMenu(): AdminMenuKey {
   const hash = window.location.hash.slice(1) as AdminMenuKey;
   const allowed: AdminMenuKey[] = [
     "summary",
+    "saldo",
     "add-product",
     "delete-product",
     "add-stock",
@@ -226,6 +229,34 @@ export default function AdminSidebar() {
               </span>
               {showLabels && (
                 <span className="menu-item-text">ᴅᴀꜱʜʙᴏʀᴅ</span>
+              )}
+            </Link>
+          </li>
+
+          <li>
+            <Link
+              href="/admin/panel#saldo"
+              onClick={() => {
+                setActiveMenu("saldo");
+                closeMobileSidebar();
+              }}
+              className={`menu-item group ${
+                activeMenu === "saldo"
+                  ? "menu-item-active"
+                  : "menu-item-inactive"
+              } ${!showLabels ? "lg:justify-center" : "lg:justify-start"}`}
+            >
+              <span
+                className={
+                  activeMenu === "saldo"
+                    ? "menu-item-icon-active"
+                    : "menu-item-icon-inactive"
+                }
+              >
+                <WalletIcon />
+              </span>
+              {showLabels && (
+                <span className="menu-item-text">ꜱᴀʟᴅᴏ & ᴛᴏᴘ ᴜᴘ</span>
               )}
             </Link>
           </li>

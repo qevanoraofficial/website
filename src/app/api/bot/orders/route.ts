@@ -93,10 +93,56 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient();
+    const reason = String(body.error || "").trim().slice(0, 500);
+
+    let orderQuery = admin
+      .from("orders")
+      .select("id, order_code, status, payment_status, payment_method, updated_at");
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId);
+    orderQuery = isUuid ? orderQuery.eq("id", orderId) : orderQuery.eq("order_code", orderId);
+    const { data: existingOrder, error: lookupError } = await orderQuery.maybeSingle();
+
+    if (lookupError) throw lookupError;
+    if (!existingOrder) {
+      return NextResponse.json(
+        { ok: false, error: "Order tidak ditemukan." },
+        { status: 404 }
+      );
+    }
+
+    if (
+      status === "cancelled" &&
+      existingOrder.payment_status === "paid" &&
+      existingOrder.payment_method === "wallet"
+    ) {
+      const { data: refundData, error: refundError } = await admin.rpc(
+        "refund_order_to_wallet",
+        {
+          p_order_id: existingOrder.id,
+          p_reason: reason || "Order dibatalkan admin.",
+        }
+      );
+
+      if (refundError) throw refundError;
+      const refund = Array.isArray(refundData) ? refundData[0] : refundData;
+
+      return NextResponse.json({
+        ok: true,
+        refunded: true,
+        newBalance: Number(refund?.new_balance || 0),
+        order: {
+          id: existingOrder.order_code || orderId,
+          status: "cancelled",
+          updatedAt: new Date().toISOString(),
+        },
+      });
+    }
+
     const { data, error } = await admin.rpc("service_set_order_status", {
       p_order_ref: orderId,
       p_status: status,
-      p_error: String(body.error || "").trim().slice(0, 500),
+      p_error: reason,
     });
 
     if (error) {
