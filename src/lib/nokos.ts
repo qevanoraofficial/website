@@ -359,6 +359,41 @@ async function getPriceMap(country: number, server: "s1" | "s2"): Promise<Record
   return result;
 }
 
+type NokosServerMode = "auto" | "s1" | "s2";
+type NokosConcreteServer = "s1" | "s2";
+
+type NokosServerPriceChoice = {
+  server: NokosConcreteServer;
+  providerPrice: number;
+  stock: number;
+};
+
+function chooseBestServerPrice(
+  s1Entry?: NokosPriceEntry,
+  s2Entry?: NokosPriceEntry,
+): NokosServerPriceChoice | null {
+  const candidates: NokosServerPriceChoice[] = [];
+
+  const add = (server: NokosConcreteServer, entry?: NokosPriceEntry) => {
+    const providerPrice = nokosPriceRupiah(entry?.cost);
+    const stock = Math.max(0, int(entry?.count));
+    if (providerPrice <= 0 || stock <= 0) return;
+    candidates.push({ server, providerPrice, stock });
+  };
+
+  add("s1", s1Entry);
+  add("s2", s2Entry);
+
+  candidates.sort(
+    (a, b) =>
+      a.providerPrice - b.providerPrice ||
+      b.stock - a.stock ||
+      (a.server === "s2" ? -1 : 1),
+  );
+
+  return candidates[0] || null;
+}
+
 function sellingPrice(providerPrice: number) {
   const percent = Math.max(0, num(process.env.NOKOS_MARKUP_PERCENT, 0));
   const flat = Math.max(0, num(process.env.NOKOS_MARKUP_FLAT, 0));
@@ -368,7 +403,7 @@ function sellingPrice(providerPrice: number) {
 export async function getNokosPriceCheck(options: {
   service: string;
   country?: number;
-  server?: "s1" | "s2";
+  server?: NokosServerMode;
 }) {
   const { services, countries } = await getNokosReference();
   const query = String(options.service || "").trim().toLowerCase();
@@ -385,22 +420,45 @@ export async function getNokosPriceCheck(options: {
 
   const requestedCountry = int(options.country, defaultCountry.id);
   const country = countries.find((item) => item.id === requestedCountry) || defaultCountry;
-  const server = options.server === "s1" ? "s1" : "s2";
+  const requestedServer: NokosServerMode =
+    options.server === "s1" ? "s1" : options.server === "s2" ? "s2" : "auto";
 
-  const [priceMap, availability] = await Promise.all([
-    getPriceMap(country.id, server),
-    nokosRequest<{ available?: string | number; price?: string | number }>("getAvailability", {
-      query: { service: service.code, country: country.id, server },
-    }),
+  const [s1Map, s2Map] = await Promise.all([
+    requestedServer === "s2"
+      ? Promise.resolve({} as Record<string, NokosPriceEntry>)
+      : getPriceMap(country.id, "s1"),
+    requestedServer === "s1"
+      ? Promise.resolve({} as Record<string, NokosPriceEntry>)
+      : getPriceMap(country.id, "s2"),
   ]);
 
-  const priceEntry = priceMap[service.code];
-  const rawCatalogCost = num(priceEntry?.cost, 0);
+  const best = chooseBestServerPrice(
+    requestedServer === "s2" ? undefined : s1Map[service.code],
+    requestedServer === "s1" ? undefined : s2Map[service.code],
+  );
+
+  const server: NokosConcreteServer =
+    best?.server || (requestedServer === "s1" ? "s1" : "s2");
+  const selectedEntry = server === "s1" ? s1Map[service.code] : s2Map[service.code];
+
+  let availability: { available?: string | number; price?: string | number } = {};
+  try {
+    availability = await nokosRequest<{
+      available?: string | number;
+      price?: string | number;
+    }>("getAvailability", {
+      query: { service: service.code, country: country.id, server },
+    });
+  } catch {
+    // getPrices tetap sumber utama; availability hanya diagnostik/fallback.
+  }
+
+  const rawCatalogCost = num(selectedEntry?.cost, 0);
   const rawAvailabilityPrice = num(availability.price, 0);
-  const catalogProviderPrice = nokosPriceRupiah(priceEntry?.cost);
+  const catalogProviderPrice = best?.providerPrice || nokosPriceRupiah(selectedEntry?.cost);
   const checkoutProviderPrice = nokosPriceRupiah(availability.price);
   const providerPrice = catalogProviderPrice || checkoutProviderPrice;
-  const stockCatalog = Math.max(0, int(priceEntry?.count));
+  const stockCatalog = best?.stock || Math.max(0, int(selectedEntry?.count));
   const stockAvailability = Math.max(0, int(availability.available));
 
   if (providerPrice <= 0) {
@@ -414,6 +472,7 @@ export async function getNokosPriceCheck(options: {
   return {
     service: { code: service.code, name: service.name },
     country: { id: country.id, name: country.name, prefix: country.prefix || "" },
+    requestedServer,
     server,
     source: {
       getPrices: {
@@ -427,7 +486,8 @@ export async function getNokosPriceCheck(options: {
         stock: stockAvailability,
       },
     },
-    effectiveSource: catalogProviderPrice > 0 && stockCatalog > 0 ? "getPrices" : "getAvailability",
+    effectiveSource:
+      catalogProviderPrice > 0 && stockCatalog > 0 ? "getPrices" : "getAvailability",
     availabilityHealthy: checkoutProviderPrice > 0 && stockAvailability > 0,
     safeToSell: providerPrice > 0 && (stockCatalog > 0 || stockAvailability > 0),
     consistent: {
@@ -630,7 +690,7 @@ async function getServicePriceMap(
 
 export async function getNokosCatalog(options?: {
   country?: number;
-  server?: "s1" | "s2";
+  server?: NokosServerMode;
   search?: string;
   sort?: NokosCatalogSort;
   minStock?: number;
@@ -644,8 +704,17 @@ export async function getNokosCatalog(options?: {
 
   const requestedCountry = int(options?.country, defaultCountry.id);
   const country = countries.find((item) => item.id === requestedCountry) || defaultCountry;
-  const server = options?.server === "s1" ? "s1" : "s2";
-  const priceMap = await getPriceMap(country.id, server);
+  const server: NokosServerMode =
+    options?.server === "s1" ? "s1" : options?.server === "s2" ? "s2" : "auto";
+
+  const [s1Map, s2Map] = await Promise.all([
+    server === "s2"
+      ? Promise.resolve({} as Record<string, NokosPriceEntry>)
+      : getPriceMap(country.id, "s1"),
+    server === "s1"
+      ? Promise.resolve({} as Record<string, NokosPriceEntry>)
+      : getPriceMap(country.id, "s2"),
+  ]);
 
   const search = String(options?.search || "").trim().toLowerCase();
   const minStock = Math.max(0, int(options?.minStock, 0));
@@ -659,20 +728,21 @@ export async function getNokosCatalog(options?: {
   for (const service of services) {
     if (search && !`${service.name} ${service.code}`.toLowerCase().includes(search)) continue;
 
-    const entry = priceMap[service.code];
-    const providerPrice = nokosPriceRupiah(entry?.cost);
-    const stock = Math.max(0, int(entry?.count));
-    if (providerPrice <= 0 || stock <= 0) continue;
+    const best = chooseBestServerPrice(
+      server === "s2" ? undefined : s1Map[service.code],
+      server === "s1" ? undefined : s2Map[service.code],
+    );
+    if (!best) continue;
 
     const product = choiceToProduct({
       service,
       country,
-      server,
-      providerPrice,
-      stock,
+      server: best.server,
+      providerPrice: best.providerPrice,
+      stock: best.stock,
     });
 
-    if (minStock > 0 && stock < minStock) continue;
+    if (minStock > 0 && best.stock < minStock) continue;
     if (maxPrice > 0 && product.price > maxPrice) continue;
     rows.push({ product, service });
   }
@@ -699,7 +769,7 @@ export async function getNokosCatalog(options?: {
 
 export async function getNokosCheapestCatalog(options: {
   service: string;
-  server?: "s1" | "s2";
+  server?: NokosServerMode;
   sort?: NokosCheapestSort;
   region?: NokosRegion;
   minStock?: number;
@@ -712,8 +782,18 @@ export async function getNokosCheapestCatalog(options: {
   const service = services.find((item) => item.code === serviceCode);
   if (!service) throw new Error("Layanan yang dipilih tidak ditemukan.");
 
-  const server = options.server === "s1" ? "s1" : "s2";
-  const priceMap = await getServicePriceMap(service.code, server);
+  const server: NokosServerMode =
+    options.server === "s1" ? "s1" : options.server === "s2" ? "s2" : "auto";
+
+  const [s1Map, s2Map] = await Promise.all([
+    server === "s2"
+      ? Promise.resolve({} as Record<number, NokosPriceEntry>)
+      : getServicePriceMap(service.code, "s1"),
+    server === "s1"
+      ? Promise.resolve({} as Record<number, NokosPriceEntry>)
+      : getServicePriceMap(service.code, "s2"),
+  ]);
+
   const minStock = Math.max(0, int(options.minStock, 0));
   const maxPrice = Math.max(0, int(options.maxPrice, 0));
   const region: NokosRegion =
@@ -729,13 +809,21 @@ export async function getNokosCheapestCatalog(options: {
   const rows: Product[] = [];
   for (const country of countries) {
     if (!countryMatchesRegion(country, region)) continue;
-    const entry = priceMap[country.id];
-    const providerPrice = nokosPriceRupiah(entry?.cost);
-    const stock = Math.max(0, int(entry?.count));
-    if (providerPrice <= 0 || stock <= 0) continue;
 
-    const product = choiceToProduct({ service, country, server, providerPrice, stock });
-    if (minStock > 0 && stock < minStock) continue;
+    const best = chooseBestServerPrice(
+      server === "s2" ? undefined : s1Map[country.id],
+      server === "s1" ? undefined : s2Map[country.id],
+    );
+    if (!best) continue;
+
+    const product = choiceToProduct({
+      service,
+      country,
+      server: best.server,
+      providerPrice: best.providerPrice,
+      stock: best.stock,
+    });
+    if (minStock > 0 && best.stock < minStock) continue;
     if (maxPrice > 0 && product.price > maxPrice) continue;
     rows.push(product);
   }
@@ -743,7 +831,12 @@ export async function getNokosCheapestCatalog(options: {
   if (sort === "stock") {
     rows.sort((a, b) => b.stock - a.stock || a.price - b.price);
   } else if (sort === "name") {
-    rows.sort((a, b) => (a.nokosCountryName || a.name).localeCompare(b.nokosCountryName || b.name, "id-ID"));
+    rows.sort((a, b) =>
+      (a.nokosCountryName || a.name).localeCompare(
+        b.nokosCountryName || b.name,
+        "id-ID",
+      ),
+    );
   } else {
     rows.sort((a, b) => a.price - b.price || b.stock - a.stock);
   }

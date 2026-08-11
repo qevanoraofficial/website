@@ -43,7 +43,9 @@ export async function GET(request: NextRequest) {
   const service = String(params.get("service") || "").trim();
   const all = params.get("all") === "1" || service.toLowerCase() === "all";
   const country = safeInt(params.get("country"), 6);
-  const server = params.get("server") === "s1" ? "s1" : "s2";
+  const serverParam = params.get("server");
+  const server =
+    serverParam === "s1" ? "s1" : serverParam === "s2" ? "s2" : "auto";
 
   try {
     if (all) {
@@ -101,6 +103,8 @@ export async function GET(request: NextRequest) {
               "",
             ),
           },
+          selectedServer:
+            product.nokosServer === "s1" ? "s1" : "s2",
           providerPrice,
           markupPercent,
           markupFlat,
@@ -145,9 +149,9 @@ export async function GET(request: NextRequest) {
             "Isi ?service=wa untuk satu layanan, atau ?all=1 untuk semua layanan.",
           examples: {
             single:
-              "/api/nokos/price-check?service=wa&country=6&server=s2",
+              "/api/nokos/price-check?service=wa&country=6&server=auto",
             all:
-              "/api/nokos/price-check?all=1&country=6&server=s2",
+              "/api/nokos/price-check?all=1&country=6&server=auto",
           },
         },
         400,

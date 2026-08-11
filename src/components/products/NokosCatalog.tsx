@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import NokosBuyButton from "@/components/products/NokosBuyButton";
 
-type ServerMode = "s1" | "s2";
+type ServerMode = "auto" | "s1" | "s2";
 type CatalogMode = "country" | "cheapest";
 type CountrySort = "popular" | "price" | "stock" | "name";
 type CheapestSort = "price" | "stock" | "name";
@@ -255,11 +255,15 @@ function operatorLabel(value: string) {
 }
 
 function serverLabel(server: ServerMode) {
+  if (server === "auto") return "Otomatis Termurah";
   return server === "s1" ? "Server Express" : "Server Plus";
 }
 
 function serverDescription(server: ServerMode) {
-  return server === "s1" ? "Alternatif • respons cepat" : "Server utama • harga paling hemat";
+  if (server === "auto") return "Bandingkan Plus & Express per layanan";
+  return server === "s1"
+    ? "Pilihan manual • Server Express"
+    : "Pilihan manual • Server Plus";
 }
 
 function serviceRank(service: Service) {
@@ -283,7 +287,7 @@ function serviceRank(service: Service) {
 
 export default function NokosCatalog() {
   const [mode, setMode] = useState<CatalogMode>("country");
-  const [server, setServer] = useState<ServerMode>("s2");
+  const [server, setServer] = useState<ServerMode>("auto");
   const [countries, setCountries] = useState<Country[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [country, setCountry] = useState(6);
@@ -951,7 +955,7 @@ export default function NokosCatalog() {
                     <div className="min-w-0">
                       <h2 className="line-clamp-2 text-xs font-black leading-4 text-white">{label}</h2>
                       <p className="mt-0.5 truncate text-[9px] text-gray-500">
-                        {Number(product.stock).toLocaleString("id-ID")} stok
+                        {Number(product.stock).toLocaleString("id-ID")} stok{product.nokosServer ? ` • ${product.nokosServer === "s1" ? "Express" : "Plus"}` : ""}
                       </p>
                     </div>
                   </div>
@@ -997,7 +1001,7 @@ export default function NokosCatalog() {
                         )}
                       </div>
                       <p className="mt-0.5 text-[10px] text-gray-500">
-                        {Number(product.stock).toLocaleString("id-ID")} stok
+                        {Number(product.stock).toLocaleString("id-ID")} stok{product.nokosServer ? ` • ${product.nokosServer === "s1" ? "Express" : "Plus"}` : ""}
                       </p>
                     </div>
                     {index === 0 && (
@@ -1066,25 +1070,33 @@ export default function NokosCatalog() {
             </div>
 
             <div className="mt-4 rounded-2xl border border-brand-500/15 bg-brand-500/[0.05] p-3 text-[10px] leading-5 text-gray-400">
-              Harga dan stok bisa berbeda tiap server. Pilihan server selalu dibawa sampai proses pembelian agar harga, stok, dan nomor tetap konsisten.
+              Mode Otomatis membandingkan harga dan stok live Server Plus + Express untuk setiap layanan. Server termurah yang masih punya stok dipakai sampai checkout, jadi customer tidak perlu memilih manual.
             </div>
 
             <div className="mt-3 space-y-3">
               {([
                 {
+                  value: "auto" as ServerMode,
+                  name: "Otomatis Termurah",
+                  badge: "DIREKOMENDASIKAN",
+                  description: "Bandingkan Server Plus + Express",
+                  detail: "Setiap layanan otomatis memakai server dengan harga provider paling murah yang stoknya tersedia. Jika harga sama, dipilih stok yang lebih banyak.",
+                  icon: "✦",
+                },
+                {
                   value: "s2" as ServerMode,
                   name: "Server Plus",
-                  badge: "DIREKOMENDASIKAN",
-                  description: "Server utama • harga paling hemat",
-                  detail: "Kompetitif untuk banyak layanan dan negara dengan stok independen.",
+                  badge: "",
+                  description: "Pilihan manual • Server Plus",
+                  detail: "Kunci pembelian hanya ke Server Plus tanpa membandingkan Server Express.",
                   icon: "☁",
                 },
                 {
                   value: "s1" as ServerMode,
                   name: "Server Express",
                   badge: "",
-                  description: "Alternatif • respons cepat",
-                  detail: "Pilihan alternatif ketika stok atau kualitas pengiriman di Server Plus sedang kurang cocok.",
+                  description: "Pilihan manual • Server Express",
+                  detail: "Kunci pembelian hanya ke Server Express tanpa membandingkan Server Plus.",
                   icon: "⚡",
                 },
               ]).map((item) => (
