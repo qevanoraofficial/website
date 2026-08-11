@@ -79,6 +79,20 @@ function int(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+/**
+ * Nokos documents `cost` / `price` as Rupiah (for example WhatsApp Indonesia = 250).
+ * Some live price payloads may expose the same value in thousands of Rupiah
+ * (for example 0.25 instead of 250). Values below Rp100 are therefore treated
+ * as the normalized-thousands form. Nokos public pricing currently starts at
+ * about Rp100, so this prevents a 0.25/0.15 cost from collapsing to Rp501 after
+ * the store markup is applied.
+ */
+function nokosPriceRupiah(value: unknown) {
+  const parsed = num(value, 0);
+  if (parsed <= 0) return 0;
+  if (parsed < 100) return Math.max(1, Math.round(parsed * 1000));
+  return Math.round(parsed);
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -521,7 +535,7 @@ async function getServicePriceMap(
     if (!entry || typeof entry !== "object") continue;
 
     const priceEntry = entry as NokosPriceEntry;
-    const cost = Math.max(0, num(priceEntry.cost));
+    const cost = nokosPriceRupiah(priceEntry.cost);
     const count = Math.max(0, int(priceEntry.count));
     if (cost > 0 || count > 0) result[countryId] = { cost, count };
   }
@@ -562,7 +576,7 @@ export async function getNokosCatalog(options?: {
     if (search && !`${service.name} ${service.code}`.toLowerCase().includes(search)) continue;
 
     const entry = priceMap[service.code];
-    const providerPrice = Math.max(0, num(entry?.cost));
+    const providerPrice = nokosPriceRupiah(entry?.cost);
     const stock = Math.max(0, int(entry?.count));
     if (providerPrice <= 0 || stock <= 0) continue;
 
@@ -632,7 +646,7 @@ export async function getNokosCheapestCatalog(options: {
   for (const country of countries) {
     if (!countryMatchesRegion(country, region)) continue;
     const entry = priceMap[country.id];
-    const providerPrice = Math.max(0, num(entry?.cost));
+    const providerPrice = nokosPriceRupiah(entry?.cost);
     const stock = Math.max(0, int(entry?.count));
     if (providerPrice <= 0 || stock <= 0) continue;
 
@@ -679,7 +693,7 @@ export async function getNokosProduct(productId: string): Promise<Product | null
   const availability = await nokosRequest<{ available?: string | number; price?: string | number }>("getAvailability", {
     query: { service: parsed.service, country: parsed.country, server: parsed.server },
   });
-  const providerPrice = Math.max(0, num(availability.price));
+  const providerPrice = nokosPriceRupiah(availability.price);
   const stock = Math.max(0, int(availability.available));
   if (!providerPrice) return null;
 
