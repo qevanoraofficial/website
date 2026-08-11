@@ -12,6 +12,12 @@ type OrderItemRow = {
   input_data?: Record<string, unknown> | null;
 };
 
+type SupplierOrderRow = {
+  supplier_order_id?: string | null;
+  status?: string | null;
+  response_payload?: Record<string, unknown> | null;
+};
+
 type OrderRow = {
   id: string;
   order_code: string;
@@ -23,6 +29,7 @@ type OrderRow = {
   supplier?: string | null;
   customer_data?: Record<string, unknown> | null;
   order_items?: OrderItemRow[] | null;
+  supplier_orders?: SupplierOrderRow[] | null;
 };
 
 export function toLegacyStatus(status: string): LegacyOrderStatus {
@@ -36,6 +43,13 @@ export function toLegacyStatus(status: string): LegacyOrderStatus {
 export function mapOrderForCustomer(row: OrderRow) {
   const item = row.order_items?.[0];
   const input = item?.input_data || {};
+  const supplierRow = row.supplier_orders?.[0];
+  const supplierPayload = supplierRow?.response_payload || {};
+  const supplier = String(row.supplier || "manual");
+  const otpCode = String(input.otpCode || supplierPayload.code || "");
+  const phone = String(input.phone || supplierPayload.phone || "");
+  const expiresAt = String(input.expiresAt || supplierPayload.expires_at || "");
+  const activationId = String(input.activationId || supplierRow?.supplier_order_id || "");
 
   return {
     id: row.order_code || row.id,
@@ -47,9 +61,17 @@ export function mapOrderForCustomer(row: OrderRow) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     error: row.cancel_reason || "",
-    supplier: String(row.supplier || "manual"),
+    supplier,
     target: String(input.target || ""),
     quantity: Number(input.quantity || 1),
+    service: String(input.service || ""),
+    countryName: String(input.countryName || ""),
+    phone,
+    activationId,
+    otpCode,
+    sms: String(input.sms || supplierPayload.sms || ""),
+    expiresAt,
+    canCancel: supplier === "nokos" && toLegacyStatus(row.status) === "accepted" && !otpCode && Boolean(activationId),
   };
 }
 
@@ -82,5 +104,7 @@ export function mapOrderForBot(
     supplier: mapped.supplier,
     target: mapped.target,
     quantity: mapped.quantity,
+    phone: mapped.phone,
+    otpCode: mapped.otpCode,
   };
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProducts } from "@/lib/catalog";
 import FollowServicesCatalog from "@/components/products/FollowServicesCatalog";
+import NokosCatalog from "@/components/products/NokosCatalog";
 import {
   formatRupiah,
   getCategoryProducts,
@@ -50,8 +51,12 @@ export default async function ProductCategoryPage({
     notFound();
   }
 
-  if (category === "nokos") {
+  if (category === "followers-sosmed") {
     return <FollowServicesCatalog />;
+  }
+
+  if (category === "nokos") {
+    return <NokosCatalog />;
   }
 
   const products = getCategoryProducts(allProducts, category);

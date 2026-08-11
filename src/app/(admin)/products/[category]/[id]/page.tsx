@@ -21,7 +21,7 @@ export async function generateMetadata({
   params,
 }: ProductDetailPageProps): Promise<Metadata> {
   const { category, id } = await params;
-  const product = category === "nokos" && id.startsWith("follow-")
+  const product = (category === "followers-sosmed" || category === "nokos") && id.startsWith("follow-")
     ? await getFollowProduct(id)
     : getProduct(await getProducts(), category, id);
 
@@ -39,7 +39,7 @@ export default async function ProductDetailPage({
   params,
 }: ProductDetailPageProps) {
   const { category, id } = await params;
-  const product = category === "nokos" && id.startsWith("follow-")
+  const product = (category === "followers-sosmed" || category === "nokos") && id.startsWith("follow-")
     ? await getFollowProduct(id)
     : getProduct(await getProducts(), category, id);
 

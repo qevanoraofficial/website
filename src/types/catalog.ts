@@ -24,6 +24,11 @@ export type Product = {
   ratePer1000?: number;
   providerRate?: number;
   providerCurrency?: string;
+  nokosServiceCode?: string;
+  nokosCountryId?: number;
+  nokosCountryName?: string;
+  nokosCountryPrefix?: string;
+  nokosServer?: "s1" | "s2";
 };
 
 export type TransactionTestimonial = {

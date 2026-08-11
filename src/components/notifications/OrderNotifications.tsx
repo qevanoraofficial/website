@@ -18,6 +18,14 @@ type UserOrder = {
   supplier?: string;
   target?: string;
   quantity?: number;
+  service?: string;
+  countryName?: string;
+  phone?: string;
+  activationId?: string;
+  otpCode?: string;
+  sms?: string;
+  expiresAt?: string;
+  canCancel?: boolean;
 };
 
 const statusPresentation: Record<
@@ -118,6 +126,7 @@ function PendingAnimation() {
 export default function OrderNotifications() {
   const [orders, setOrders] = useState<UserOrder[] | null>(null);
   const [notice, setNotice] = useState("");
+  const [cancellingOrder, setCancellingOrder] = useState("");
 
   const syncOrders = useCallback(async () => {
     try {
@@ -146,6 +155,26 @@ export default function OrderNotifications() {
       );
     }
   }, []);
+
+  const cancelNokosOrder = async (orderId: string) => {
+    if (cancellingOrder) return;
+    setCancellingOrder(orderId);
+    setNotice("");
+    try {
+      const response = await fetch(`/api/nokos/orders/${encodeURIComponent(orderId)}/cancel`, { method: "POST" });
+      const payload = (await response.json()) as { ok?: boolean; error?: string; message?: string; newBalance?: number };
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Order gagal dibatalkan.");
+      if (typeof payload.newBalance === "number") {
+        window.dispatchEvent(new CustomEvent("qevanora-wallet-updated", { detail: { balance: payload.newBalance } }));
+      }
+      setNotice(payload.message || "Order berhasil dibatalkan.");
+      await syncOrders();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Order gagal dibatalkan.");
+    } finally {
+      setCancellingOrder("");
+    }
+  };
 
   useEffect(() => {
     setNotice(readAndClearOrderPageNotice());
@@ -225,16 +254,23 @@ export default function OrderNotifications() {
       {orders.map((order) => {
         const presentation = statusPresentation[order.status];
         const isFollow = order.supplier === "follow";
+        const isNokos = order.supplier === "nokos";
         const message =
           order.status === "failed" && order.error
             ? order.error
-            : isFollow && order.status === "accepted"
-              ? "Order sudah dibayar dan sedang diproses otomatis. Status akan diperbarui otomatis."
-              : isFollow && order.status === "completed"
-                ? "Order sudah selesai diproses."
-                : isFollow && order.status === "cancelled"
-                  ? "Order supplier dibatalkan/gagal. Saldo QEVANORA dikembalikan otomatis sesuai status pembayaran."
-                  : presentation.message;
+            : isNokos && order.status === "accepted"
+              ? "Nomor sudah diterbitkan. Sistem sedang menunggu OTP masuk."
+              : isNokos && order.status === "completed"
+                ? "OTP sudah diterima. Aktivasi selesai."
+                : isNokos && order.status === "cancelled"
+                  ? "Aktivasi dibatalkan. Saldo QEVANORA dikembalikan otomatis."
+                  : isFollow && order.status === "accepted"
+                    ? "Order sudah dibayar dan sedang diproses otomatis. Status akan diperbarui otomatis."
+                    : isFollow && order.status === "completed"
+                      ? "Order sudah selesai diproses."
+                      : isFollow && order.status === "cancelled"
+                        ? "Order supplier dibatalkan/gagal. Saldo QEVANORA dikembalikan otomatis sesuai status pembayaran."
+                        : presentation.message;
 
         return (
           <article
@@ -270,6 +306,38 @@ export default function OrderNotifications() {
               <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-xs leading-5 text-gray-500 dark:border-gray-800 dark:bg-white/[0.02] dark:text-gray-400">
                 {order.target && <p className="break-all">Target: {order.target}</p>}
                 {order.quantity ? <p>Jumlah: {Number(order.quantity).toLocaleString("id-ID")}</p> : null}
+              </div>
+            )}
+
+            {isNokos && (order.phone || order.otpCode || order.countryName) && (
+              <div className="mt-3 rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4 text-sm leading-6">
+                {order.countryName && <p className="text-xs text-gray-500 dark:text-gray-400">Negara: {order.countryName}</p>}
+                {order.phone && (
+                  <div className="mt-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Nomor</p>
+                    <p className="select-all break-all text-lg font-bold text-gray-800 dark:text-white">{order.phone}</p>
+                  </div>
+                )}
+                {order.otpCode ? (
+                  <div className="mt-3 rounded-xl border border-success-500/20 bg-success-500/10 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-success-600 dark:text-success-500">Kode OTP</p>
+                    <p className="select-all text-2xl font-black tracking-[0.16em] text-success-600 dark:text-success-500">{order.otpCode}</p>
+                    {order.sms && <p className="mt-2 break-words text-xs text-gray-500 dark:text-gray-400">{order.sms}</p>}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">Menunggu SMS OTP... halaman ini diperbarui otomatis.</p>
+                )}
+                {order.expiresAt && <p className="mt-2 text-xs text-gray-400">Berlaku sampai: {order.expiresAt}</p>}
+                {order.canCancel && (
+                  <button
+                    type="button"
+                    onClick={() => void cancelNokosOrder(order.id)}
+                    disabled={cancellingOrder === order.id}
+                    className="mt-3 rounded-lg border border-error-500/25 px-3 py-2 text-xs font-semibold text-error-500 transition hover:bg-error-500/10 disabled:opacity-50"
+                  >
+                    {cancellingOrder === order.id ? "Membatalkan..." : "Batalkan & Refund"}
+                  </button>
+                )}
               </div>
             )}
 

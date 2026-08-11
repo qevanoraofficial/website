@@ -91,7 +91,7 @@ export default function FollowServicesCatalog() {
               <p className="mt-3 line-clamp-3 whitespace-pre-line text-xs leading-5 text-gray-500 dark:text-gray-400">{product.shortDescription}</p>
               <div className="mt-auto pt-5">
                 <p className="text-lg font-bold text-gray-800 dark:text-white/90">{rupiah(product.ratePer1000 || product.price)} <span className="text-xs font-medium text-gray-400">/ 1.000</span></p>
-                <Link href={`/products/nokos/${product.id}`} className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-600">Pilih Layanan</Link>
+                <Link href={`/products/followers-sosmed/${product.id}`} className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-600">Pilih Layanan</Link>
               </div>
             </article>
           ))}

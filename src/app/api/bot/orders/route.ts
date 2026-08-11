@@ -3,6 +3,7 @@ import { requireBotAuthorization } from "@/lib/bot-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mapOrderForBot } from "@/lib/supabase/order-mapper";
 import { syncRecentFollowOrders } from "@/lib/follow-order-sync";
+import { syncRecentNokosOrders } from "@/lib/nokos-order-sync";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,14 +19,19 @@ export async function GET(request: Request) {
   try {
     requireBotAuthorization(request);
     const admin = createAdminClient();
-    await syncRecentFollowOrders(admin).catch((error) => {
-      console.error("[follow] sinkron status bot gagal", error);
-    });
+    await Promise.all([
+      syncRecentFollowOrders(admin).catch((error) => {
+        console.error("[follow] sinkron status bot gagal", error);
+      }),
+      syncRecentNokosOrders(admin).catch((error) => {
+        console.error("[nokos] sinkron status bot gagal", error);
+      }),
+    ]);
 
     const { data: orderRows, error } = await admin
       .from("orders")
       .select(
-        "id, order_code, user_id, status, supplier, created_at, updated_at, cancel_reason, customer_data, order_items(supplier_product_id, product_name, unit_price, input_data)"
+        "id, order_code, user_id, status, supplier, created_at, updated_at, cancel_reason, customer_data, order_items(supplier_product_id, product_name, unit_price, input_data), supplier_orders(supplier_order_id, status, response_payload)"
       )
       .order("created_at", { ascending: false })
       .limit(1000);
@@ -115,9 +121,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (existingOrder.supplier === "follow") {
+    if (["follow", "nokos"].includes(String(existingOrder.supplier || ""))) {
       return NextResponse.json(
-        { ok: false, error: "Order Follow.co.id dikendalikan otomatis oleh status supplier." },
+        { ok: false, error: "Order supplier otomatis dikendalikan oleh status layanan." },
         { status: 409 }
       );
     }

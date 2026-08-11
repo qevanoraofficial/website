@@ -219,7 +219,7 @@ export function followServiceToProduct(service: FollowService, currency: string)
 
   return {
     id: `follow-${serviceId}`,
-    category: "nokos",
+    category: "followers-sosmed",
     categoryName: "Followers Sosmed",
     name: serviceName,
     shortDescription: `${category}\nMin ${min.toLocaleString("id-ID")} • Max ${max.toLocaleString("id-ID")} • ${String(service.type || "Standard")}`,

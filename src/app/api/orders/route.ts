@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProducts } from "@/lib/catalog";
 import { createFollowOrder, getFollowProduct } from "@/lib/follow";
 import { syncFollowOrdersForUser } from "@/lib/follow-order-sync";
+import { createNokosActivation, getNokosProduct, parseNokosProductId } from "@/lib/nokos";
+import { syncNokosOrdersForUser } from "@/lib/nokos-order-sync";
 import { assertSameOrigin } from "@/lib/order-session";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -38,14 +40,19 @@ export async function GET() {
     }
 
     const admin = createAdminClient();
-    await syncFollowOrdersForUser(admin, userData.user.id).catch((error) => {
-      console.error("[follow] sinkron status customer gagal", error);
-    });
+    await Promise.all([
+      syncFollowOrdersForUser(admin, userData.user.id).catch((error) => {
+        console.error("[follow] sinkron status customer gagal", error);
+      }),
+      syncNokosOrdersForUser(admin, userData.user.id).catch((error) => {
+        console.error("[nokos] sinkron status customer gagal", error);
+      }),
+    ]);
 
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, order_code, status, supplier, created_at, updated_at, cancel_reason, order_items(supplier_product_id, product_name, unit_price, input_data)"
+        "id, order_code, status, supplier, created_at, updated_at, cancel_reason, order_items(supplier_product_id, product_name, unit_price, input_data), supplier_orders(supplier_order_id, status, response_payload)"
       )
       .eq("user_id", userData.user.id)
       .order("created_at", { ascending: false })
@@ -83,7 +90,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as OrderRequest;
-    const productId = clean(body.productId, 100);
+    const productId = clean(body.productId, 180);
     const requestedPayment = body.paymentMethod === "wallet" ? "wallet" : "manual";
 
     if (!productId) {
@@ -91,6 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isFollowProduct = productId.startsWith("follow-");
+    const isNokosProduct = productId.startsWith("nokos:");
     const [{ data: profile }, { data: wallet }, regularProducts] = await Promise.all([
       supabase
         .from("profiles")
@@ -102,7 +110,7 @@ export async function POST(request: NextRequest) {
         .select("balance")
         .eq("user_id", userData.user.id)
         .maybeSingle(),
-      isFollowProduct ? Promise.resolve([]) : getProducts(),
+      isFollowProduct || isNokosProduct ? Promise.resolve([]) : getProducts(),
     ]);
 
     if (!profile || profile.status !== "active") {
@@ -115,14 +123,18 @@ export async function POST(request: NextRequest) {
 
     const product = isFollowProduct
       ? await getFollowProduct(productId)
-      : regularProducts.find((item) => item.id === productId) || null;
+      : isNokosProduct
+        ? await getNokosProduct(productId)
+        : regularProducts.find((item) => item.id === productId) || null;
 
     if (!product || product.active === false) {
-      return jsonResponse({ ok: false, error: "Produk tidak ditemukan." }, 404);
+      return jsonResponse({ ok: false, error: "Produk tidak ditemukan atau stok sedang kosong." }, 404);
     }
 
     const isFollow = product.supplier === "follow";
-    const paymentMethod = isFollow ? "wallet" : requestedPayment;
+    const isNokos = product.supplier === "nokos";
+    const isAutoSupplier = isFollow || isNokos;
+    const paymentMethod = isAutoSupplier ? "wallet" : requestedPayment;
     let target = "";
     let quantity = 1;
     let price = Math.max(0, Math.round(Number(product.price) || 0));
@@ -145,6 +157,14 @@ export async function POST(request: NextRequest) {
 
       const ratePer1000 = Math.max(1, Number(product.ratePer1000 || product.price) || 1);
       price = Math.max(1, Math.ceil((ratePer1000 * quantity) / 1000));
+    } else if (isNokos) {
+      if (Number(product.stock) <= 0) {
+        return jsonResponse({ ok: false, error: "Stok nomor sedang kosong untuk layanan ini." }, 409);
+      }
+      if (!parseNokosProductId(product.id)) {
+        return jsonResponse({ ok: false, error: "Layanan Nokos tidak valid." }, 400);
+      }
+      price = Math.max(1, Math.round(Number(product.price) || 0));
     } else if (Number(product.stock) <= 0) {
       return jsonResponse({ ok: false, error: "Stok produk sedang habis." }, 409);
     }
@@ -160,7 +180,11 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = createAdminClient();
-    const supplierProductId = isFollow ? String(product.supplierProductId || productId.replace(/^follow-/, "")) : product.id;
+    const supplierProductId = isAutoSupplier
+      ? String(product.supplierProductId || (isFollow ? productId.replace(/^follow-/, "") : ""))
+      : product.id;
+    const supplierName = isFollow ? "follow" : isNokos ? "nokos" : "manual";
+
     const { data, error } = await admin.rpc("service_create_catalog_order", {
       p_user_id: userData.user.id,
       p_product_id: supplierProductId,
@@ -173,8 +197,16 @@ export async function POST(request: NextRequest) {
         telegram: profile.telegram_id || "",
         email: userData.user.email || "",
         ...(isFollow ? { target, quantity } : {}),
+        ...(isNokos
+          ? {
+              service: product.nokosServiceCode || supplierProductId,
+              country: product.nokosCountryId,
+              countryName: product.nokosCountryName,
+              server: product.nokosServer,
+            }
+          : {}),
       },
-      p_supplier: isFollow ? "follow" : "manual",
+      p_supplier: supplierName,
     });
 
     if (error) throw error;
@@ -184,11 +216,9 @@ export async function POST(request: NextRequest) {
       throw new Error("Order Supabase gagal dibuat.");
     }
 
-    if (isFollow) {
-      const { error: itemError } = await admin
-        .from("order_items")
-        .update({
-          input_data: {
+    if (isFollow || isNokos) {
+      const inputData = isFollow
+        ? {
             categoryName: product.categoryName,
             target,
             quantity,
@@ -197,8 +227,19 @@ export async function POST(request: NextRequest) {
             ratePer1000: product.ratePer1000 || product.price,
             providerCategory: product.providerCategory || "",
             serviceType: product.serviceType || "",
-          },
-        })
+          }
+        : {
+            categoryName: "Nokos",
+            service: product.nokosServiceCode || supplierProductId,
+            country: product.nokosCountryId,
+            countryName: product.nokosCountryName || "",
+            countryPrefix: product.nokosCountryPrefix || "",
+            server: product.nokosServer,
+            stockAtOrder: product.stock,
+          };
+      const { error: itemError } = await admin
+        .from("order_items")
+        .update({ input_data: inputData })
         .eq("order_id", created.order_id);
       if (itemError) throw itemError;
     }
@@ -310,6 +351,126 @@ export async function POST(request: NextRequest) {
           p_reason: `${supplierMessage} Saldo dikembalikan otomatis.`,
         });
 
+        if (refundError) throw refundError;
+        const refund = Array.isArray(refundData) ? refundData[0] : refundData;
+
+        return jsonResponse(
+          {
+            ok: false,
+            error: `${supplierMessage} Saldo QEVANORA sudah dikembalikan.`,
+            orderId: created.order_code,
+            newBalance: Number(refund?.new_balance || newBalance || 0),
+          },
+          502
+        );
+      }
+    }
+
+    if (isNokos) {
+      const parsed = parseNokosProductId(product.id);
+      if (!parsed) throw new Error("Layanan Nokos tidak valid.");
+      const requestPayload = {
+        categoryName: "Nokos",
+        service: parsed.service,
+        country: parsed.country,
+        countryName: product.nokosCountryName || "",
+        server: parsed.server,
+      };
+
+      const { data: supplierRow, error: supplierCreateError } = await admin
+        .from("supplier_orders")
+        .insert({
+          order_id: created.order_id,
+          supplier: "nokos",
+          status: "pending",
+          cost_amount: Math.max(0, Math.round(Number(product.providerRate || 0))),
+          request_payload: requestPayload,
+        })
+        .select("id")
+        .single();
+
+      if (supplierCreateError) {
+        const { data: refundData } = await admin.rpc("refund_order_to_wallet", {
+          p_order_id: created.order_id,
+          p_reason: "Tracking aktivasi gagal dibuat. Saldo dikembalikan otomatis.",
+        });
+        const refund = Array.isArray(refundData) ? refundData[0] : refundData;
+        return jsonResponse(
+          {
+            ok: false,
+            error: "Aktivasi gagal disiapkan. Saldo sudah dikembalikan.",
+            newBalance: Number(refund?.new_balance || newBalance || 0),
+          },
+          502
+        );
+      }
+
+      try {
+        const activation = await createNokosActivation({
+          service: parsed.service,
+          country: parsed.country,
+          server: parsed.server,
+          idempotencyKey: `qevanora-${created.order_code}`,
+        });
+
+        await admin
+          .from("supplier_orders")
+          .update({
+            supplier_order_id: activation.activation_id,
+            status: "processing",
+            cost_amount: Math.max(0, Math.round(Number(activation.price || product.providerRate || 0))),
+            response_payload: activation,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", supplierRow.id);
+
+        await admin
+          .from("order_items")
+          .update({
+            input_data: {
+              ...requestPayload,
+              phone: activation.phone,
+              activationId: activation.activation_id,
+              expiresAt: String(activation.expires_at || ""),
+            },
+          })
+          .eq("order_id", created.order_id);
+
+        await admin.rpc("service_set_order_status", {
+          p_order_ref: created.order_code,
+          p_status: "accepted",
+          p_error: null,
+        });
+
+        return jsonResponse(
+          {
+            ok: true,
+            orderId: created.order_code,
+            createdAt: created.created_at,
+            status: "accepted",
+            paymentMethod,
+            newBalance,
+            phone: activation.phone,
+            message: `Nomor untuk order ${created.order_code} berhasil diterbitkan. Cek halaman notifikasi untuk nomor dan OTP.`,
+          },
+          201
+        );
+      } catch (supplierError) {
+        const supplierMessage = supplierError instanceof Error ? supplierError.message : "Nomor gagal diterbitkan.";
+        await admin
+          .from("supplier_orders")
+          .update({
+            status: "failed",
+            error_message: supplierMessage,
+            response_payload: { error: supplierMessage },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", supplierRow.id);
+
+        const { data: refundData, error: refundError } = await admin.rpc("refund_order_to_wallet", {
+          p_order_id: created.order_id,
+          p_reason: `${supplierMessage} Saldo dikembalikan otomatis.`,
+        });
         if (refundError) throw refundError;
         const refund = Array.isArray(refundData) ? refundData[0] : refundData;
 
