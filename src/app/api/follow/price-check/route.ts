@@ -6,6 +6,7 @@ import {
 } from "@/lib/admin-auth";
 import {
   followServiceToProduct,
+  getFollowPricingConfig,
   getFollowServices,
   isFollowConfigured,
 } from "@/lib/follow";
@@ -55,14 +56,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await getFollowServices({ force: true });
-    const markupPercent = Math.max(
-      0,
-      number(process.env.FOLLOW_MARKUP_PERCENT, 0),
-    );
-    const usdIdrRate = Math.max(
-      1,
-      number(process.env.FOLLOW_USD_IDR_RATE, 17000),
-    );
+    const {
+      markupPercent,
+      markupFlatPer1000,
+      usdIdrRate,
+    } = getFollowPricingConfig();
 
     let services = result.services;
 
@@ -129,6 +127,7 @@ export async function GET(request: NextRequest) {
             result.currency === "USD" ? usdIdrRate : null,
         },
         markupPercent,
+        markupFlatPer1000,
         profitPer1000,
         sellingRatePer1000,
         min,
@@ -170,6 +169,7 @@ export async function GET(request: NextRequest) {
       rateCurrency: result.currency,
       currencySource: result.currencySource,
       markupPercent,
+      markupFlatPer1000,
       usdIdrRate:
         result.currency === "USD" ? usdIdrRate : null,
       totalServices: products.length,

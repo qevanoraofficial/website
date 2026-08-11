@@ -201,11 +201,27 @@ export async function getFollowServices(options?: { force?: boolean }) {
   return servicesCache;
 }
 
+export function getFollowPricingConfig() {
+  const configuredPercent = numeric(process.env.FOLLOW_MARKUP_PERCENT, 20);
+  const configuredFlat = numeric(process.env.FOLLOW_MARKUP_FLAT, 500);
+
+  return {
+    markupPercent: configuredPercent > 0 ? configuredPercent : 20,
+    markupFlatPer1000: configuredFlat > 0 ? configuredFlat : 500,
+    usdIdrRate: Math.max(1, numeric(process.env.FOLLOW_USD_IDR_RATE, 17000)),
+  };
+}
+
 function sellingRateIdr(providerRate: number, currency: string) {
-  const markup = Math.max(0, numeric(process.env.FOLLOW_MARKUP_PERCENT, 0));
-  const usdIdr = Math.max(1, numeric(process.env.FOLLOW_USD_IDR_RATE, 17000));
-  const baseIdr = currency === "USD" ? providerRate * usdIdr : providerRate;
-  return Math.max(1, Math.ceil(baseIdr * (1 + markup / 100)));
+  const { markupPercent, markupFlatPer1000, usdIdrRate } =
+    getFollowPricingConfig();
+  const baseIdr =
+    currency === "USD" ? providerRate * usdIdrRate : providerRate;
+
+  return Math.max(
+    1,
+    Math.ceil(baseIdr * (1 + markupPercent / 100) + markupFlatPer1000),
+  );
 }
 
 export function followServiceToProduct(service: FollowService, currency: string): Product {
