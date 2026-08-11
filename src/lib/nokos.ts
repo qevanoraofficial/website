@@ -78,6 +78,104 @@ function int(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function firstText(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (value === undefined || value === null) continue;
+    const text = String(value).trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function describeShape(value: unknown) {
+  if (Array.isArray(value)) {
+    const first = value[0];
+    if (isRecord(first)) return `array(itemKeys:${Object.keys(first).slice(0, 10).join(",") || "none"})`;
+    if (Array.isArray(first)) return `array(tupleLength:${first.length})`;
+    return `array(itemType:${typeof first})`;
+  }
+  if (isRecord(value)) {
+    const keys = Object.keys(value).slice(0, 10);
+    const firstValue = keys.length ? value[keys[0]] : undefined;
+    if (isRecord(firstValue)) {
+      return `object(keys:${keys.join(",") || "none"}; valueKeys:${Object.keys(firstValue).slice(0, 10).join(",") || "none"})`;
+    }
+    return `object(keys:${keys.join(",") || "none"}; valueType:${typeof firstValue})`;
+  }
+  return typeof value;
+}
+
+function normalizeServices(raw: unknown): NokosService[] {
+  const output: NokosService[] = [];
+
+  const add = (value: unknown, fallbackCode = "") => {
+    let code = "";
+    let name = "";
+
+    if (typeof value === "string" || typeof value === "number") {
+      code = fallbackCode.trim();
+      name = String(value).trim();
+      if (!code && name) code = name;
+    } else if (Array.isArray(value)) {
+      code = String(value[0] ?? fallbackCode).trim();
+      name = String(value[1] ?? value[0] ?? "").trim();
+    } else if (isRecord(value)) {
+      code = firstText(value, ["code", "service", "service_code", "id", "key", "slug"]) || fallbackCode.trim();
+      name = firstText(value, ["name", "title", "service_name", "label", "text", "display_name"]);
+      if (!name && code && value[code] !== undefined) name = String(value[code] ?? "").trim();
+    }
+
+    if (code && name) output.push({ code, name });
+  };
+
+  if (Array.isArray(raw)) {
+    for (const item of raw) add(item);
+  } else if (isRecord(raw)) {
+    for (const [key, value] of Object.entries(raw)) add(value, key);
+  }
+
+  return Array.from(new Map(output.map((item) => [item.code, item])).values());
+}
+
+function normalizeCountries(raw: unknown): NokosCountry[] {
+  const output: NokosCountry[] = [];
+
+  const add = (value: unknown, fallbackId?: string) => {
+    let idValue: unknown = fallbackId;
+    let name = "";
+    let prefix = "";
+
+    if (typeof value === "string" || typeof value === "number") {
+      name = String(value).trim();
+    } else if (Array.isArray(value)) {
+      idValue = value[0] ?? fallbackId;
+      name = String(value[1] ?? "").trim();
+      prefix = String(value[2] ?? "").trim();
+    } else if (isRecord(value)) {
+      idValue = value.id ?? value.country ?? value.country_id ?? value.code ?? fallbackId;
+      name = firstText(value, ["name", "title", "country_name", "eng", "en", "label", "display_name"]);
+      prefix = firstText(value, ["prefix", "dial_code", "phone_code", "calling_code", "dialCode"]);
+    }
+
+    const id = int(idValue, Number.NaN);
+    if (Number.isFinite(id) && name) output.push({ id, name, prefix });
+  };
+
+  if (Array.isArray(raw)) {
+    for (const item of raw) add(item);
+  } else if (isRecord(raw)) {
+    for (const [key, value] of Object.entries(raw)) add(value, key);
+  }
+
+  return Array.from(new Map(output.map((item) => [item.id, item])).values());
+}
+
 function sanitizeError(message: string) {
   const text = message.trim();
   if (/NO_NUMBERS/i.test(text)) return "Stok nomor sedang kosong untuk layanan ini.";
@@ -207,24 +305,19 @@ export async function getNokosReference(options?: { force?: boolean }) {
   }
 
   const [servicesRaw, countriesRaw] = await Promise.all([
-    nokosRequest<NokosService[]>("getServices"),
-    nokosRequest<NokosCountry[]>("getCountries"),
+    nokosRequest<unknown>("getServices"),
+    nokosRequest<unknown>("getCountries"),
   ]);
 
-  const services = Array.isArray(servicesRaw)
-    ? servicesRaw
-        .map((item) => ({ code: String(item.code || "").trim(), name: String(item.name || "").trim() }))
-        .filter((item) => item.code && item.name)
-    : [];
-  const countries = Array.isArray(countriesRaw)
-    ? countriesRaw
-        .map((item) => ({
-          id: int(item.id),
-          name: String(item.name || "").trim(),
-          prefix: String(item.prefix || "").trim(),
-        }))
-        .filter((item) => Number.isFinite(item.id) && item.name)
-    : [];
+  const services = normalizeServices(servicesRaw);
+  const countries = normalizeCountries(countriesRaw);
+
+  if (services.length === 0) {
+    throw new Error(`Nokos getServices berhasil tetapi format layanan tidak dikenali (${describeShape(servicesRaw)}).`);
+  }
+  if (countries.length === 0) {
+    throw new Error(`Nokos getCountries berhasil tetapi format negara tidak dikenali (${describeShape(countriesRaw)}).`);
+  }
 
   referenceCache = { expiresAt: now + 10 * 60 * 1000, services, countries };
   return referenceCache;

@@ -14,7 +14,7 @@ export async function GET() {
     await getNokosBalance();
     const { services, countries } = await getNokosReference({ force: true });
     return NextResponse.json({
-      ok: true,
+      ok: services.length > 0 && countries.length > 0,
       configured: true,
       auth: true,
       serviceCount: services.length,
