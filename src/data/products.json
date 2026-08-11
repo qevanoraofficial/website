@@ -1,21 +1,5 @@
 [
   {
-    "id": "prd_mskbe9c1_7f280f",
-    "category": "pterodactyl-panel",
-    "categoryName": "Pterodactyl Panel",
-    "name": "PANEL RUN BOT 7GB | 1 BULAN",
-    "shortDescription": "Panel Pterodactyl adalah sebuah platform open-source berbasis web yang dirancang untuk mengelola server game dan aplikasi lainnya dengan mudah dan efisien. Panel ini menyediakan antarmuka pengguna yang ramah (user-friendly) untuk mengelola berbagai aspek server, termasuk instalasi, konfigurasi, pemantauan, dan pengelolaan pengguna.",
-    "fullDescription": "Panel Pterodactyl adalah sebuah platform open-source berbasis web yang dirancang untuk mengelola server game dan aplikasi lainnya dengan mudah dan efisien. Panel ini menyediakan antarmuka pengguna yang ramah (user-friendly) untuk mengelola berbagai aspek server, termasuk instalasi, konfigurasi, pemantauan, dan pengelolaan pengguna.",
-    "description": "Panel Pterodactyl adalah sebuah platform open-source berbasis web yang dirancang untuk mengelola server game dan aplikasi lainnya dengan mudah dan efisien. Panel ini menyediakan antarmuka pengguna yang ramah (user-friendly) untuk mengelola berbagai aspek server, termasuk instalasi, konfigurasi, pemantauan, dan pengelolaan pengguna.",
-    "price": 5000,
-    "stock": 1,
-    "active": true,
-    "imagePath": "storage/products/prd_mskbe9c1_7f280f.png",
-    "image": "/api/media?path=storage%2Fproducts%2Fprd_mskbe9c1_7f280f.png",
-    "createdAt": "2026-08-08T11:53:00.097Z",
-    "updatedAt": "2026-08-08T11:53:00.097Z"
-  },
-  {
     "id": "prd_mskb4yj8_f42dd1",
     "category": "pterodactyl-panel",
     "categoryName": "Pterodactyl Panel",
