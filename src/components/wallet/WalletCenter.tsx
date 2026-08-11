@@ -183,9 +183,6 @@ export default function WalletCenter() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-500">Dompet QEVANORA</p>
             <h4 className="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">Top Up Saldo</h4>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500 dark:text-gray-400">
-              Top up diproses otomatis melalui Midtrans. Setelah pembayaran terkonfirmasi oleh payment gateway, saldo QEVANORA akan masuk otomatis.
-            </p>
           </div>
           <div className="rounded-xl border border-brand-500/15 bg-brand-500/[0.05] px-4 py-3 sm:min-w-44 sm:text-right">
             <p className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">Saldo Aktif</p>
@@ -213,7 +210,7 @@ export default function WalletCenter() {
             disabled={submitting}
             className="self-end rounded-xl bg-brand-500 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? "Membuat Pembayaran..." : "Bayar via Midtrans"}
+            {submitting ? "Membuat Pembayaran..." : "Top Up"}
           </button>
         </div>
 
