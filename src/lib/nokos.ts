@@ -176,7 +176,7 @@ export async function getNokosReference(options?: { force?: boolean }) {
   return referenceCache;
 }
 
-async function getPriceMap(country: number, server: "s1" | "s2") {
+async function getPriceMap(country: number, server: "s1" | "s2"): Promise<Record<string, NokosPriceEntry>> {
   const cacheKey = `${country}:${server}`;
   const cached = priceCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.data;
@@ -256,8 +256,8 @@ export async function getNokosCatalog(options?: {
   const requestedCountry = int(options?.country, defaultCountry.id);
   const country = countries.find((item) => item.id === requestedCountry) || defaultCountry;
   const [s1, s2] = await Promise.all([
-    getPriceMap(country.id, "s1").catch(() => ({})),
-    getPriceMap(country.id, "s2").catch(() => ({})),
+    getPriceMap(country.id, "s1").catch((): Record<string, NokosPriceEntry> => ({})),
+    getPriceMap(country.id, "s2").catch((): Record<string, NokosPriceEntry> => ({})),
   ]);
 
   const search = String(options?.search || "").trim().toLowerCase();
