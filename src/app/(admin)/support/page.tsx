@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 const contacts = [
   {
     name: "WhatsApp",
-    value: "087761057674",
+    value: "Hubungi via whatsapp",
     href: "https://wa.me/6287761057674",
     icon: (
       <svg
@@ -25,8 +25,8 @@ const contacts = [
   },
   {
     name: "Telegram",
-    value: "@digistore205",
-    href: "https://t.me/digistore205",
+    value: "Hubungi via telegram",
+    href: "https://t.me/qevanoraofficial",
     icon: (
       <svg
         width="26"
@@ -37,23 +37,6 @@ const contacts = [
         aria-hidden="true"
       >
         <path d="M21.9 4.1 18.9 19c-.22 1.05-.82 1.31-1.66.82l-4.57-3.37-2.2 2.12c-.25.25-.45.45-.92.45l.33-4.66 8.49-7.67c.37-.33-.08-.52-.57-.19L7.3 13.11l-4.52-1.41c-.98-.31-1-.98.2-1.45L20.66 3.43c.82-.3 1.54.2 1.24.67Z" />
-      </svg>
-    ),
-  },
-  {
-    name: "YouTube",
-    value: "@DigieStore",
-    href: "https://www.youtube.com/@DigieStore",
-    icon: (
-      <svg
-        width="28"
-        height="28"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <path d="M23.5 6.2a3 3 0 0 0-2.11-2.12C19.52 3.58 12 3.58 12 3.58s-7.52 0-9.39.5A3 3 0 0 0 .5 6.2C0 8.07 0 12 0 12s0 3.93.5 5.8a3 3 0 0 0 2.11 2.12c1.87.5 9.39.5 9.39.5s7.52 0 9.39-.5a3 3 0 0 0 2.11-2.12C24 15.93 24 12 24 12s0-3.93-.5-5.8ZM9.6 15.6V8.4L15.84 12 9.6 15.6Z" />
       </svg>
     ),
   },
