@@ -39,6 +39,7 @@ export default function NokosBuyButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState(0);
+  const [checkoutPrice, setCheckoutPrice] = useState(price);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
@@ -66,14 +67,15 @@ export default function NokosBuyButton({
       .maybeSingle();
 
     setBalance(Number(wallet?.balance || 0));
+    setCheckoutPrice(price);
     setError("");
     setOpen(true);
   };
 
   const buy = async () => {
     if (sending) return;
-    if (balance < price) {
-      setError(`Saldo tidak cukup. Kamu butuh ${formatRupiah(price - balance)} lagi.`);
+    if (balance < checkoutPrice) {
+      setError(`Saldo tidak cukup. Kamu butuh ${formatRupiah(checkoutPrice - balance)} lagi.`);
       return;
     }
 
@@ -88,6 +90,7 @@ export default function NokosBuyButton({
           productId,
           paymentMethod: "wallet",
           operator,
+          quotedPrice: checkoutPrice,
         }),
       });
 
@@ -98,12 +101,27 @@ export default function NokosBuyButton({
         newBalance?: number;
         error?: string;
         message?: string;
+        code?: string;
+        currentPrice?: number;
+        selectedServer?: "s1" | "s2";
       } = {};
 
       try {
         payload = text ? JSON.parse(text) : {};
       } catch {
         payload = { ok: false, error: `Order gagal diproses (HTTP ${response.status}).` };
+      }
+
+      if (
+        response.status === 409 &&
+        payload.code === "PRICE_CHANGED" &&
+        typeof payload.currentPrice === "number"
+      ) {
+        setCheckoutPrice(payload.currentPrice);
+        setError(
+          `Harga diperbarui menjadi ${formatRupiah(payload.currentPrice)}. Periksa harga terbaru lalu tekan Beli Sekarang lagi.`,
+        );
+        return;
       }
 
       if (!response.ok || !payload.ok || !payload.orderId) {
@@ -180,7 +198,7 @@ export default function NokosBuyButton({
               Beli OTP {serviceLabel(productName)}?
             </h3>
             <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
-              Harga <span className="font-bold text-brand-500">{formatRupiah(price)}</span>
+              Harga <span className="font-bold text-brand-500">{formatRupiah(checkoutPrice)}</span>
             </p>
             <p className="mt-2 text-center text-xs leading-5 text-gray-500 dark:text-gray-400">
               Nomor akan dialokasikan otomatis. OTP akan muncul di halaman notifikasi setelah SMS diterima.
@@ -199,9 +217,9 @@ export default function NokosBuyButton({
               )}
             </div>
 
-            {balance < price && (
+            {balance < checkoutPrice && (
               <p className="mt-3 text-center text-xs leading-5 text-error-500">
-                Saldo kurang {formatRupiah(price - balance)}.{" "}
+                Saldo kurang {formatRupiah(checkoutPrice - balance)}.{" "}
                 <Link href="/profile#wallet-center" className="font-semibold underline">
                   Top up saldo
                 </Link>{" "}
@@ -227,7 +245,7 @@ export default function NokosBuyButton({
               <button
                 type="button"
                 onClick={() => void buy()}
-                disabled={sending || balance < price}
+                disabled={sending || balance < checkoutPrice}
                 className="rounded-xl bg-brand-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {sending ? "Memproses..." : "Beli Sekarang"}

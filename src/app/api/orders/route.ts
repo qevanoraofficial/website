@@ -18,6 +18,7 @@ type OrderRequest = {
   target?: string;
   quantity?: number;
   operator?: string;
+  quotedPrice?: number;
 };
 
 function clean(value: unknown, maxLength: number): string {
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json()) as OrderRequest;
     const productId = clean(body.productId, 180);
+    const quotedPrice = Math.max(0, Math.round(Number(body.quotedPrice) || 0));
     const requestedPayment = body.paymentMethod === "wallet" ? "wallet" : "manual";
     const operatorCandidate =
       clean(body.operator, 40).toLowerCase().replace(/[^a-z0-9_-]/g, "") || "any";
@@ -179,6 +181,22 @@ export async function POST(request: NextRequest) {
         return jsonResponse({ ok: false, error: "Layanan Nokos tidak valid." }, 400);
       }
       price = Math.max(1, Math.round(Number(product.price) || 0));
+
+      // Proteksi harga checkout Nokos:
+      // harga yang dilihat customer harus sama dengan harga server-side saat order dibuat.
+      // Jika berubah, hentikan sebelum order/wallet dibuat atau didebit.
+      if (quotedPrice > 0 && quotedPrice !== price) {
+        return jsonResponse(
+          {
+            ok: false,
+            code: "PRICE_CHANGED",
+            currentPrice: price,
+            selectedServer: product.nokosServer,
+            error: `Harga layanan berubah menjadi Rp${new Intl.NumberFormat("id-ID").format(price)}. Silakan konfirmasi harga terbaru.`,
+          },
+          409
+        );
+      }
     } else if (Number(product.stock) <= 0) {
       return jsonResponse({ ok: false, error: "Stok produk sedang habis." }, 409);
     }
