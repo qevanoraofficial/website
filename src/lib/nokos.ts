@@ -399,7 +399,7 @@ export async function getNokosPriceCheck(options: {
   const rawAvailabilityPrice = num(availability.price, 0);
   const catalogProviderPrice = nokosPriceRupiah(priceEntry?.cost);
   const checkoutProviderPrice = nokosPriceRupiah(availability.price);
-  const providerPrice = checkoutProviderPrice || catalogProviderPrice;
+  const providerPrice = catalogProviderPrice || checkoutProviderPrice;
   const stockCatalog = Math.max(0, int(priceEntry?.count));
   const stockAvailability = Math.max(0, int(availability.available));
 
@@ -427,15 +427,18 @@ export async function getNokosPriceCheck(options: {
         stock: stockAvailability,
       },
     },
+    effectiveSource: catalogProviderPrice > 0 && stockCatalog > 0 ? "getPrices" : "getAvailability",
+    availabilityHealthy: checkoutProviderPrice > 0 && stockAvailability > 0,
+    safeToSell: providerPrice > 0 && (stockCatalog > 0 || stockAvailability > 0),
     consistent: {
       price:
-        catalogProviderPrice > 0 &&
-        checkoutProviderPrice > 0 &&
-        catalogProviderPrice === checkoutProviderPrice,
+        checkoutProviderPrice > 0
+          ? catalogProviderPrice > 0 && catalogProviderPrice === checkoutProviderPrice
+          : null,
       stock:
-        stockCatalog > 0 &&
-        stockAvailability > 0 &&
-        stockCatalog === stockAvailability,
+        stockAvailability > 0
+          ? stockCatalog > 0 && stockCatalog === stockAvailability
+          : null,
     },
     providerPrice,
     markupPercent,
@@ -771,13 +774,29 @@ export async function getNokosProduct(productId: string): Promise<Product | null
   const country = countries.find((item) => item.id === parsed.country);
   if (!service || !country) return null;
 
-  const availability = await nokosRequest<{ available?: string | number; price?: string | number }>("getAvailability", {
-    query: { service: parsed.service, country: parsed.country, server: parsed.server },
-  });
-  const providerPrice = nokosPriceRupiah(availability.price);
-  const stock = Math.max(0, int(availability.available));
-  if (!providerPrice) return null;
+  // getPrices adalah sumber harga/stok utama yang dipakai katalog dan terbukti
+  // mengembalikan data live pada production QEVANORA. getAvailability tetap
+  // dicoba sebagai fallback karena endpoint itu kadang mengembalikan 0/0.
+  const priceMap = await getPriceMap(parsed.country, parsed.server);
+  const priceEntry = priceMap[parsed.service];
+  let providerPrice = nokosPriceRupiah(priceEntry?.cost);
+  let stock = Math.max(0, int(priceEntry?.count));
 
+  if (providerPrice <= 0 || stock <= 0) {
+    try {
+      const availability = await nokosRequest<{ available?: string | number; price?: string | number }>("getAvailability", {
+        query: { service: parsed.service, country: parsed.country, server: parsed.server },
+      });
+      const fallbackPrice = nokosPriceRupiah(availability.price);
+      const fallbackStock = Math.max(0, int(availability.available));
+      if (fallbackPrice > 0) providerPrice = fallbackPrice;
+      if (fallbackStock > 0) stock = fallbackStock;
+    } catch {
+      // getPrices tetap menjadi sumber utama; kegagalan fallback tidak membatalkan checkout.
+    }
+  }
+
+  if (providerPrice <= 0 || stock <= 0) return null;
   return choiceToProduct({ service, country, server: parsed.server, providerPrice, stock });
 }
 
@@ -802,7 +821,16 @@ export async function createNokosActivation(input: {
   const activationId = String(data.activation_id || "").trim();
   const phone = String(data.phone || "").trim();
   if (!activationId || !phone) throw new Error("Nomor gagal diterbitkan. Saldo akan dikembalikan.");
-  return { ...data, activation_id: activationId, phone };
+
+  // Samakan unit harga pada response getNumber dengan katalog (Rupiah).
+  // Contoh payload live 0.24 harus dicatat sebagai Rp240, bukan dibulatkan Rp0.
+  const activationPrice = nokosPriceRupiah(data.price);
+  return {
+    ...data,
+    activation_id: activationId,
+    phone,
+    ...(activationPrice > 0 ? { price: activationPrice } : {}),
+  };
 }
 
 export async function getNokosActivationStatus(activationId: string) {
