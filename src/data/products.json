@@ -1,5 +1,21 @@
 [
   {
+    "id": "prd_msoxvkqs_056ec3",
+    "category": "pterodactyl-panel",
+    "categoryName": "Pterodactyl Panel",
+    "name": "PTERODACTYL PANEL RUN BOT",
+    "shortDescription": "Pterodactyl panel untuk run bot whatsapp dan telegram.",
+    "fullDescription": "Panel Pterodactyl adalah sebuah platform open-source berbasis web yang dirancang untuk mengelola server game dan aplikasi lainnya dengan mudah dan efisien. Panel ini menyediakan antarmuka pengguna yang ramah (user-friendly) untuk mengelola berbagai aspek server, termasuk instalasi, konfigurasi, pemantauan, dan pengelolaan pengguna.\r\n\r\nBerikut adalah beberapa poin penting tentang Pterodactyl Panel:\r\n\r\nOpen-source:\r\nPterodactyl Panel dikembangkan secara terbuka, memungkinkan pengguna untuk berkontribusi pada pengembangan dan memodifikasinya sesuai kebutuhan.\r\n\r\nManajemen Server:\r\nPanel ini memudahkan pengelolaan server game seperti Minecraft, Rust, CS:GO, dan banyak lagi, serta aplikasi lain yang berjalan di lingkungan server.\r\n\r\nAntarmuka Web:\r\nPengguna dapat mengakses dan mengelola server mereka melalui antarmuka web yang mudah digunakan, tanpa perlu pengetahuan teknis yang mendalam tentang server.\r\n\r\nKeamanan:\r\nPterodactyl Panel menggunakan isolasi Docker untuk menjaga keamanan dan stabilitas server, memastikan bahwa setiap server berjalan secara terpisah.\r\n\r\nFitur:\r\nPanel ini menawarkan berbagai fitur, termasuk manajemen pengguna, pengaturan server, pemantauan sumber daya, otomatisasi, dan kemampuan untuk mengelola beberapa server dari satu panel.\r\n\r\nFleksibel:\r\nPterodactyl Panel dapat digunakan untuk berbagai jenis server, baik untuk kebutuhan pribadi maupun bisnis.\r\n\r\nSkalabilitas:\r\nPanel ini dirancang untuk dapat diskalakan, memungkinkan pengguna untuk menambah atau mengurangi sumber daya server sesuai kebutuhan.\r\n\r\nKesimpulannya, Pterodactyl Panel adalah alat yang kuat dan serbaguna untuk mengelola server game dan aplikasi, menawarkan kemudahan penggunaan, keamanan, dan fleksibilitas bagi pengguna dari berbagai latar belakang.\r\n\r\nFull Garansi kalau menaati sesuai S&K.",
+    "description": "Pterodactyl panel untuk run bot whatsapp dan telegram.",
+    "price": 2000,
+    "stock": 1,
+    "active": true,
+    "imagePath": "storage/products/prd_msoxvkqs_056ec3.png",
+    "image": "/api/media?path=storage%2Fproducts%2Fprd_msoxvkqs_056ec3.png",
+    "createdAt": "2026-08-11T17:33:24.292Z",
+    "updatedAt": "2026-08-11T17:33:24.292Z"
+  },
+  {
     "id": "prd_msimox8n_b65316",
     "category": "sosmed-facebook",
     "categoryName": "Sosmed Facebook",
