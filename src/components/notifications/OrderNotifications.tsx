@@ -229,9 +229,9 @@ export default function OrderNotifications() {
           order.status === "failed" && order.error
             ? order.error
             : isFollow && order.status === "accepted"
-              ? "Order sudah dibayar dan sedang diproses otomatis oleh Follow.co.id. Status akan diperbarui otomatis."
+              ? "Order sudah dibayar dan sedang diproses otomatis. Status akan diperbarui otomatis."
               : isFollow && order.status === "completed"
-                ? "Order Follow.co.id sudah selesai diproses."
+                ? "Order sudah selesai diproses."
                 : isFollow && order.status === "cancelled"
                   ? "Order supplier dibatalkan/gagal. Saldo QEVANORA dikembalikan otomatis sesuai status pembayaran."
                   : presentation.message;

@@ -109,7 +109,7 @@ export default function BuyProductButton({
         return;
       }
       if (paymentMethod !== "wallet") {
-        setModalError("Layanan Follow.co.id hanya dapat dibayar dengan Saldo QEVANORA.");
+        setModalError("Layanan ini hanya dapat dibayar dengan Saldo QEVANORA.");
         return;
       }
     }
@@ -133,13 +133,25 @@ export default function BuyProductButton({
         }),
       });
 
-      const payload = (await response.json()) as {
+      const responseText = await response.text();
+      let payload: {
         ok?: boolean;
         orderId?: string;
         newBalance?: number;
         error?: string;
         message?: string;
-      };
+      } = {};
+
+      try {
+        payload = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        payload = {
+          ok: false,
+          error: response.ok
+            ? "Server mengembalikan respons yang tidak valid."
+            : `Order gagal diproses (HTTP ${response.status}). Saldo akan tetap aman atau dikembalikan otomatis jika sempat terpotong.`,
+        };
+      }
 
       if (!response.ok || !payload.ok || !payload.orderId) {
         throw new Error(payload.error || "Order gagal disimpan.");
@@ -213,7 +225,7 @@ export default function BuyProductButton({
               </button>
             )}
 
-            {isFollow && <div className="mt-3 rounded-xl border border-dashed border-brand-500/20 p-3 text-xs leading-5 text-gray-500 dark:text-gray-400">Order dikirim otomatis ke Follow.co.id setelah pembayaran Saldo QEVANORA berhasil. Jika supplier menolak order, saldo otomatis dikembalikan.</div>}
+            {isFollow && <div className="mt-3 rounded-xl border border-dashed border-brand-500/20 p-3 text-xs leading-5 text-gray-500 dark:text-gray-400">Order diproses otomatis setelah pembayaran Saldo QEVANORA berhasil. Jika supplier menolak order, saldo otomatis dikembalikan.</div>}
 
             {modalError && <div className="mt-3 rounded-xl border border-error-500/20 bg-error-500/10 p-3 text-sm leading-5 text-error-500">{modalError}</div>}
           </div>

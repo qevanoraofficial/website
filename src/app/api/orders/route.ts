@@ -289,7 +289,7 @@ export async function POST(request: NextRequest) {
             paymentMethod,
             newBalance,
             supplierOrderId: followOrder.order,
-            message: `Order ${created.order_code} sudah dibayar dan otomatis dikirim ke Follow.co.id.`,
+            message: `Order ${created.order_code} sudah dibayar dan otomatis dikirim untuk diproses.`,
           },
           201
         );

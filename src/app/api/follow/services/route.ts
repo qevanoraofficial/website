@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : "Layanan Follow.co.id gagal dibaca.",
+        error: error instanceof Error ? error.message : "Layanan supplier gagal dibaca.",
       },
       { status: 502, headers: { "Cache-Control": "no-store" } },
     );

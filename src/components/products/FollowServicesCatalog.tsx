@@ -66,9 +66,8 @@ export default function FollowServicesCatalog() {
       <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-500">Follow.co.id API</p>
-            <h2 className="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">Followers Sosmed</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{total.toLocaleString("id-ID")} layanan tersedia. Harga ditampilkan per 1.000 unit.</p>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white/90">Followers Sosmed</h2>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{total.toLocaleString("id-ID")} layanan tersedia.</p>
           </div>
           <form onSubmit={submitSearch} className="flex w-full gap-2 sm:max-w-md">
             <input value={searchInput} onChange={(event) => setSearchInput(event.target.value)} placeholder="Cari Instagram, TikTok, YouTube..." className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-transparent px-4 py-3 text-sm text-gray-800 outline-none focus:border-brand-500 dark:border-gray-700 dark:text-white" />
