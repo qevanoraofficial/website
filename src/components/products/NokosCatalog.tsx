@@ -23,6 +23,17 @@ type Payload = {
   error?: string;
 };
 
+async function readJsonPayload(response: Response): Promise<Payload> {
+  const text = await response.text();
+  try {
+    return JSON.parse(text) as Payload;
+  } catch {
+    throw new Error(
+      `Server mengembalikan respons non-JSON (HTTP ${response.status}). Silakan coba lagi.`,
+    );
+  }
+}
+
 function formatRupiah(value: number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -54,7 +65,7 @@ export default function NokosCatalog() {
         limit: "24",
       });
       const response = await fetch(`/api/nokos/catalog?${params.toString()}`, { cache: "no-store" });
-      const payload = (await response.json()) as Payload;
+      const payload = await readJsonPayload(response);
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Layanan Nokos gagal dimuat.");
       setProducts(Array.isArray(payload.products) ? payload.products : []);
       setCountries(Array.isArray(payload.countries) ? payload.countries : []);

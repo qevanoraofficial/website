@@ -25,7 +25,7 @@ export async function GET() {
         configured: true,
         error: error instanceof Error ? error.message : "Pemeriksaan Nokos gagal.",
       },
-      { status: 502 },
+      { status: 424, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

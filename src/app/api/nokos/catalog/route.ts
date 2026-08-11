@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   if (!isNokosConfigured()) {
     return NextResponse.json(
       { ok: false, error: "Layanan Nokos belum dikonfigurasi." },
-      { status: 503, headers: { "Cache-Control": "no-store" } },
+      { status: 424, headers: { "Cache-Control": "no-store" } },
     );
   }
 
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         ok: false,
         error: error instanceof Error ? error.message : "Layanan Nokos gagal dimuat.",
       },
-      { status: 502, headers: { "Cache-Control": "no-store" } },
+      { status: 424, headers: { "Cache-Control": "no-store" } },
     );
   }
 }

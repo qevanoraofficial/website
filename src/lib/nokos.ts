@@ -130,7 +130,8 @@ async function nokosRequest<T>(
   }
 
   if (!response.ok || payload.success === false || payload.error) {
-    throw new Error(sanitizeError(String(payload.error || `HTTP ${response.status}`)));
+    const reason = sanitizeError(String(payload.error || `HTTP ${response.status}`));
+    throw new Error(`Layanan nomor gagal (HTTP ${response.status}): ${reason}`);
   }
   if (payload.data === undefined) {
     throw new Error("Layanan nomor mengembalikan data kosong.");
