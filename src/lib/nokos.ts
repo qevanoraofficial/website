@@ -365,6 +365,87 @@ function sellingPrice(providerPrice: number) {
   return Math.max(1, Math.ceil(providerPrice * (1 + percent / 100) + flat));
 }
 
+export async function getNokosPriceCheck(options: {
+  service: string;
+  country?: number;
+  server?: "s1" | "s2";
+}) {
+  const { services, countries } = await getNokosReference();
+  const query = String(options.service || "").trim().toLowerCase();
+  if (!query) throw new Error("Parameter service wajib diisi.");
+
+  const service =
+    services.find((item) => item.code.toLowerCase() === query) ||
+    services.find((item) => item.name.toLowerCase() === query) ||
+    services.find((item) => item.name.toLowerCase().includes(query));
+  if (!service) throw new Error(`Layanan Nokos "${options.service}" tidak ditemukan.`);
+
+  const defaultCountry = countries.find((item) => item.id === 6) || countries[0];
+  if (!defaultCountry) throw new Error("Daftar negara Nokos belum tersedia.");
+
+  const requestedCountry = int(options.country, defaultCountry.id);
+  const country = countries.find((item) => item.id === requestedCountry) || defaultCountry;
+  const server = options.server === "s1" ? "s1" : "s2";
+
+  const [priceMap, availability] = await Promise.all([
+    getPriceMap(country.id, server),
+    nokosRequest<{ available?: string | number; price?: string | number }>("getAvailability", {
+      query: { service: service.code, country: country.id, server },
+    }),
+  ]);
+
+  const priceEntry = priceMap[service.code];
+  const rawCatalogCost = num(priceEntry?.cost, 0);
+  const rawAvailabilityPrice = num(availability.price, 0);
+  const catalogProviderPrice = nokosPriceRupiah(priceEntry?.cost);
+  const checkoutProviderPrice = nokosPriceRupiah(availability.price);
+  const providerPrice = checkoutProviderPrice || catalogProviderPrice;
+  const stockCatalog = Math.max(0, int(priceEntry?.count));
+  const stockAvailability = Math.max(0, int(availability.available));
+
+  if (providerPrice <= 0) {
+    throw new Error(`Harga provider untuk ${service.name} - ${country.name} belum tersedia.`);
+  }
+
+  const markupPercent = Math.max(0, num(process.env.NOKOS_MARKUP_PERCENT, 0));
+  const markupFlat = Math.max(0, num(process.env.NOKOS_MARKUP_FLAT, 0));
+  const selling = sellingPrice(providerPrice);
+
+  return {
+    service: { code: service.code, name: service.name },
+    country: { id: country.id, name: country.name, prefix: country.prefix || "" },
+    server,
+    source: {
+      getPrices: {
+        rawCost: rawCatalogCost,
+        normalizedPrice: catalogProviderPrice,
+        stock: stockCatalog,
+      },
+      getAvailability: {
+        rawPrice: rawAvailabilityPrice,
+        normalizedPrice: checkoutProviderPrice,
+        stock: stockAvailability,
+      },
+    },
+    consistent: {
+      price:
+        catalogProviderPrice > 0 &&
+        checkoutProviderPrice > 0 &&
+        catalogProviderPrice === checkoutProviderPrice,
+      stock:
+        stockCatalog > 0 &&
+        stockAvailability > 0 &&
+        stockCatalog === stockAvailability,
+    },
+    providerPrice,
+    markupPercent,
+    markupFlat,
+    percentageMarkupAmount: Math.ceil(providerPrice * (markupPercent / 100)),
+    profit: Math.max(0, selling - providerPrice),
+    sellingPrice: selling,
+  };
+}
+
 function makeProductId(service: string, country: number, server: "s1" | "s2") {
   return `nokos:${encodeURIComponent(service)}:${country}:${server}`;
 }
