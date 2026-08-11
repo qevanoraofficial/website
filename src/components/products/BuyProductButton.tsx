@@ -18,6 +18,8 @@ type BuyProductButtonProps = {
   minQuantity?: number;
   maxQuantity?: number;
   ratePer1000?: number;
+  panelPlan?: string;
+  panelUsername?: string;
 };
 
 type PaymentMethod = "wallet" | "manual";
@@ -40,9 +42,13 @@ export default function BuyProductButton({
   minQuantity,
   maxQuantity,
   ratePer1000,
+  panelPlan,
+  panelUsername,
 }: BuyProductButtonProps) {
   const router = useRouter();
   const isFollow = supplier === "follow";
+  const isPanelCheckout = Boolean(panelPlan);
+  const cleanPanelUsername = String(panelUsername || "").trim();
   const minQty = Math.max(1, Math.trunc(Number(minQuantity || 1)));
   const maxQty = Math.max(minQty, Math.trunc(Number(maxQuantity || stock || minQty)));
   const [isSending, setIsSending] = useState(false);
@@ -130,6 +136,7 @@ export default function BuyProductButton({
           productId,
           paymentMethod,
           ...(isFollow ? { target: target.trim(), quantity } : {}),
+          ...(isPanelCheckout ? { panelPlan, panelUsername: cleanPanelUsername } : {}),
         }),
       });
 
@@ -173,8 +180,19 @@ export default function BuyProductButton({
 
   return (
     <>
-      <button type="button" onClick={prepareBuy} disabled={isSending || (!isFollow && stock <= 0)} className="inline-flex w-full items-center justify-center rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60">
-        {isSending ? "Memproses..." : !isFollow && stock <= 0 ? "Stok Habis" : "Beli"}
+      <button
+        type="button"
+        onClick={prepareBuy}
+        disabled={isSending || (!isFollow && stock <= 0) || (isPanelCheckout && !cleanPanelUsername)}
+        className="inline-flex w-full items-center justify-center rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isSending
+          ? "Memproses..."
+          : !isFollow && stock <= 0
+            ? "Stok Habis"
+            : isPanelCheckout && !cleanPanelUsername
+              ? "Isi Username Panel"
+              : "Beli"}
       </button>
 
       {isOpen && (

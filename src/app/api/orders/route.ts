@@ -19,7 +19,19 @@ type OrderRequest = {
   quantity?: number;
   operator?: string;
   quotedPrice?: number;
+  panelPlan?: string;
+  panelUsername?: string;
 };
+
+
+const PANEL_PLANS = {
+  "panel-4gb": { label: "PANEL 4GB | 1 BULAN", price: 2000 },
+  "panel-7gb": { label: "PANEL 7GB | 1 BULAN", price: 5000 },
+  "panel-10gb": { label: "PANEL 10GB | 1 BULAN", price: 7000 },
+  "panel-unlimited": { label: "PANEL UNLIMITED | 1 BULAN", price: 10000 },
+} as const;
+
+type PanelPlanKey = keyof typeof PANEL_PLANS;
 
 function clean(value: unknown, maxLength: number): string {
   return String(value || "").trim().slice(0, maxLength);
@@ -149,11 +161,15 @@ export async function POST(request: NextRequest) {
 
     const isFollow = product.supplier === "follow";
     const isNokos = product.supplier === "nokos";
+    const isPanelProduct = product.category === "pterodactyl-panel";
     const isAutoSupplier = isFollow || isNokos;
     const paymentMethod = isAutoSupplier ? "wallet" : requestedPayment;
     let target = "";
     let quantity = 1;
     let price = Math.max(0, Math.round(Number(product.price) || 0));
+    let panelUsername = "";
+    let panelPlanCode = "";
+    let panelConfig: (typeof PANEL_PLANS)[PanelPlanKey] | null = null;
 
     if (isFollow) {
       target = clean(body.target, 1000);
@@ -197,6 +213,23 @@ export async function POST(request: NextRequest) {
           409
         );
       }
+    } else if (isPanelProduct) {
+      if (Number(product.stock) <= 0) {
+        return jsonResponse({ ok: false, error: "Stok panel sedang habis." }, 409);
+      }
+
+      panelPlanCode = clean(body.panelPlan, 40);
+      panelUsername = clean(body.panelUsername, 60);
+      panelConfig = PANEL_PLANS[panelPlanCode as PanelPlanKey] || null;
+
+      if (!panelConfig) {
+        return jsonResponse({ ok: false, error: "Paket panel tidak valid." }, 400);
+      }
+      if (!panelUsername) {
+        return jsonResponse({ ok: false, error: "Username panel wajib diisi." }, 400);
+      }
+
+      price = panelConfig.price;
     } else if (Number(product.stock) <= 0) {
       return jsonResponse({ ok: false, error: "Stok produk sedang habis." }, 409);
     }
@@ -220,7 +253,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await admin.rpc("service_create_catalog_order", {
       p_user_id: userData.user.id,
       p_product_id: supplierProductId,
-      p_product_name: product.name,
+      p_product_name: panelConfig?.label || product.name,
       p_category_name: product.categoryName,
       p_price: price,
       p_customer_data: {
@@ -229,6 +262,9 @@ export async function POST(request: NextRequest) {
         telegram: profile.telegram_id || "",
         email: userData.user.email || "",
         ...(isFollow ? { target, quantity } : {}),
+        ...(isPanelProduct && panelConfig
+          ? { panelUsername, panelPlan: panelConfig.label, panelPlanCode }
+          : {}),
         ...(isNokos
           ? {
               service: product.nokosServiceCode || supplierProductId,
@@ -247,6 +283,21 @@ export async function POST(request: NextRequest) {
     const created = Array.isArray(data) ? data[0] : data;
     if (!created?.order_code || !created?.order_id) {
       throw new Error("Order Supabase gagal dibuat.");
+    }
+
+    if (isPanelProduct && panelConfig) {
+      const { error: itemError } = await admin
+        .from("order_items")
+        .update({
+          input_data: {
+            categoryName: product.categoryName,
+            panelUsername,
+            panelPlan: panelConfig.label,
+            panelPlanCode,
+          },
+        })
+        .eq("order_id", created.order_id);
+      if (itemError) throw itemError;
     }
 
     if (isFollow || isNokos) {
