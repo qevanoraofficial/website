@@ -94,13 +94,18 @@ async function followRequest<T>(params: Record<string, string | number>): Promis
     throw new Error(`Follow.co.id mengembalikan respons tidak valid (${response.status}).`);
   }
 
-  if (!response.ok) {
-    throw new Error(`Follow.co.id HTTP ${response.status}.`);
-  }
-
   if (payload && typeof payload === "object" && "error" in payload) {
     const error = String((payload as { error?: unknown }).error || "").trim();
     if (error) throw new Error(`Follow.co.id: ${error}`);
+  }
+
+  if (!response.ok) {
+    const detail = raw.trim().slice(0, 300);
+    throw new Error(
+      detail
+        ? `Follow.co.id HTTP ${response.status}: ${detail}`
+        : `Follow.co.id HTTP ${response.status}.`,
+    );
   }
 
   return payload as T;
@@ -218,7 +223,7 @@ export function followServiceToProduct(service: FollowService, currency: string)
     categoryName: "Followers Sosmed",
     name: serviceName,
     shortDescription: `${category}\nMin ${min.toLocaleString("id-ID")} • Max ${max.toLocaleString("id-ID")} • ${String(service.type || "Standard")}`,
-    fullDescription: `${serviceName}\n\nKategori provider: ${category}\nTipe: ${String(service.type || "Standard")}\nMinimum order: ${min.toLocaleString("id-ID")}\nMaksimum order: ${max.toLocaleString("id-ID")}\nRefill: ${boolish(service.refill) ? "Ya" : "Tidak"}\nCancel provider: ${boolish(service.cancel) ? "Ya" : "Tidak"}\n\nHarga QEVANORA dihitung berdasarkan jumlah yang kamu pesan.`,
+    fullDescription: `${serviceName}\n\nKategori provider: ${category}\nTipe: ${String(service.type || "Standard")}\nMinimum order: ${min.toLocaleString("id-ID")}\nMaksimum order: ${max.toLocaleString("id-ID")}\nRefill: ${boolish(service.refill) ? "Ya" : "Tidak"}\nCancel provider: ${boolish(service.cancel) ? "Ya" : "Tidak"}\n\nHarga dihitung berdasarkan jumlah yang kamu pesan.`,
     description: `${category} • Min ${min.toLocaleString("id-ID")} • Max ${max.toLocaleString("id-ID")}`,
     price: sellRate,
     stock: max,
