@@ -20,9 +20,10 @@ type Props = {
   productName: string;
   price: number;
   stock: number;
+  compact?: boolean;
 };
 
-export default function NokosBuyButton({ productId, productName, price, stock }: Props) {
+export default function NokosBuyButton({ productId, productName, price, stock, compact = false }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState(0);
@@ -91,16 +92,42 @@ export default function NokosBuyButton({ productId, productName, price, stock }:
     }
   };
 
+  const disabled = sending || stock <= 0;
+  const label = sending ? "Memproses..." : stock <= 0 ? "Stok Habis" : compact ? "Beli" : "Pilih Layanan";
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => void prepare()}
-        disabled={sending || stock <= 0}
-        className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {sending ? "Memproses..." : stock <= 0 ? "Stok Habis" : "Pilih Layanan"}
-      </button>
+      {compact ? (
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_42px] gap-2">
+          <button
+            type="button"
+            onClick={() => void prepare()}
+            disabled={disabled}
+            className="inline-flex h-10 min-w-0 items-center justify-center rounded-xl bg-brand-500 px-3 text-xs font-bold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span className="mr-1.5 text-sm" aria-hidden="true">↗</span>
+            {label}
+          </button>
+          <button
+            type="button"
+            onClick={() => void prepare()}
+            disabled={disabled}
+            aria-label={`Beli ${productName}`}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-brand-500/45 bg-brand-500/[0.06] text-xl font-light text-brand-500 transition hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            +
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => void prepare()}
+          disabled={disabled}
+          className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {label}
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true">
