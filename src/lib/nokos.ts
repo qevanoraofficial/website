@@ -21,6 +21,9 @@ type NokosApiEnvelope<T> = {
   success?: boolean;
   data?: T;
   error?: string;
+  message?: string;
+  result?: T;
+  [key: string]: unknown;
 };
 
 export type NokosActivation = {
@@ -122,21 +125,71 @@ async function nokosRequest<T>(
   });
 
   const raw = await response.text();
-  let payload: NokosApiEnvelope<T>;
+  let parsed: unknown;
   try {
-    payload = JSON.parse(raw) as NokosApiEnvelope<T>;
+    parsed = JSON.parse(raw);
   } catch {
-    throw new Error(`Layanan nomor mengembalikan respons tidak valid (HTTP ${response.status}).`);
+    throw new Error(`Nokos ${action} mengembalikan respons non-JSON (HTTP ${response.status}).`);
   }
 
-  if (!response.ok || payload.success === false || payload.error) {
-    const reason = sanitizeError(String(payload.error || `HTTP ${response.status}`));
-    throw new Error(`Layanan nomor gagal (HTTP ${response.status}): ${reason}`);
+  const payload =
+    parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as NokosApiEnvelope<T>)
+      : null;
+
+  if (!response.ok || payload?.success === false || payload?.error) {
+    const reason = sanitizeError(
+      String(payload?.error || payload?.message || `HTTP ${response.status}`),
+    );
+    throw new Error(`Nokos ${action} gagal (HTTP ${response.status}): ${reason}`);
   }
-  if (payload.data === undefined) {
-    throw new Error("Layanan nomor mengembalikan data kosong.");
+
+  // Format resmi Nokos: { success: true, data: ... }
+  if (payload && payload.data !== undefined) return payload.data;
+
+  // Compatibility: beberapa implementasi API mengembalikan result / alias top-level / raw array.
+  if (payload && payload.result !== undefined) return payload.result as T;
+  if (Array.isArray(parsed)) return parsed as T;
+
+  if (payload) {
+    const aliases: Record<string, string[]> = {
+      getBalance: ["balance"],
+      getServices: ["services", "service"],
+      getCountries: ["countries", "country"],
+      getPrices: ["prices", "price"],
+      getAvailability: ["availability", "stock"],
+      getNumber: ["activation", "number", "order"],
+      getStatus: ["status"],
+      getHistory: ["history", "items"],
+      createDeposit: ["deposit", "transaction"],
+      checkDeposit: ["deposit", "transaction"],
+    };
+
+    for (const key of aliases[action] || []) {
+      if (payload[key] === undefined) continue;
+      if (action === "getBalance" && key === "balance") {
+        return { balance: payload[key] } as T;
+      }
+      if (action === "getStatus" && key === "status" && typeof payload[key] === "string") {
+        return payload as T;
+      }
+      return payload[key] as T;
+    }
+
+    // Jika respons bukan envelope resmi tetapi berupa object data langsung, tetap terima.
+    const isEnvelopeLike =
+      "success" in payload || "error" in payload || "message" in payload || "data" in payload;
+    if (!isEnvelopeLike) return payload as T;
+
+    const keys = Object.keys(payload).filter((key) => key !== "data").slice(0, 8);
+    throw new Error(
+      `Nokos ${action} mengembalikan JSON tanpa data (HTTP ${response.status}; keys: ${
+        keys.join(",") || "none"
+      }).`,
+    );
   }
-  return payload.data;
+
+  throw new Error(`Nokos ${action} mengembalikan format respons yang tidak dikenali.`);
 }
 
 export function isNokosConfigured() {

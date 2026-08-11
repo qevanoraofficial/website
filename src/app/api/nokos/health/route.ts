@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getNokosReference, isNokosConfigured } from "@/lib/nokos";
+import { getNokosBalance, getNokosReference, isNokosConfigured } from "@/lib/nokos";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,10 +10,13 @@ export async function GET() {
   }
 
   try {
+    // Probe auth dulu supaya error API key/akses terpisah dari katalog.
+    await getNokosBalance();
     const { services, countries } = await getNokosReference({ force: true });
     return NextResponse.json({
       ok: true,
       configured: true,
+      auth: true,
       serviceCount: services.length,
       countryCount: countries.length,
       cacheTtlSeconds: 600,
