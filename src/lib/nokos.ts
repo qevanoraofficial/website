@@ -57,6 +57,7 @@ type CachedReference = {
 
 let referenceCache: CachedReference | null = null;
 const priceCache = new Map<string, { expiresAt: number; data: Record<string, NokosPriceEntry> }>();
+const servicePriceCache = new Map<string, { expiresAt: number; data: Record<number, NokosPriceEntry> }>();
 
 function baseUrl() {
   return String(process.env.NOKOS_API_URL || "https://nokos.co.id/api/").trim();
@@ -390,9 +391,152 @@ function choiceToProduct(choice: CatalogChoice): Product {
   };
 }
 
+type NokosCatalogSort = "popular" | "price" | "stock" | "name";
+type NokosCheapestSort = "price" | "stock" | "name";
+type NokosRegion = "all" | "southeast-asia" | "europe" | "americas" | "africa";
+
+const POPULAR_SERVICE_TERMS = [
+  "whatsapp",
+  "telegram",
+  "google",
+  "youtube",
+  "instagram",
+  "facebook",
+  "tiktok",
+  "discord",
+  "tinder",
+  "netflix",
+  "amazon",
+];
+
+const SOUTHEAST_ASIA = new Set([
+  "indonesia",
+  "malaysia",
+  "singapore",
+  "thailand",
+  "vietnam",
+  "philippines",
+  "brunei",
+  "cambodia",
+  "laos",
+  "myanmar",
+  "timor-leste",
+  "east timor",
+]);
+
+const EUROPE = new Set([
+  "albania","andorra","austria","belarus","belgium","bosnia and herzegovina","bulgaria","croatia","cyprus",
+  "czech republic","czechia","denmark","estonia","finland","france","germany","greece","hungary","iceland",
+  "ireland","italy","kosovo","latvia","liechtenstein","lithuania","luxembourg","malta","moldova","monaco",
+  "montenegro","netherlands","north macedonia","norway","poland","portugal","romania","russia","san marino",
+  "serbia","slovakia","slovenia","spain","sweden","switzerland","ukraine","united kingdom","great britain",
+  "vatican","faroe islands","gibraltar","isle of man",
+]);
+
+const AMERICAS = new Set([
+  "argentina","bahamas","barbados","belize","bolivia","brazil","canada","chile","colombia","costa rica",
+  "cuba","dominica","dominican republic","ecuador","el salvador","grenada","guatemala","guyana","haiti",
+  "honduras","jamaica","mexico","nicaragua","panama","paraguay","peru","saint kitts and nevis",
+  "saint lucia","saint vincent and the grenadines","suriname","trinidad and tobago","uruguay","usa",
+  "united states","united states of america","venezuela","puerto rico","greenland","bermuda","aruba",
+  "curacao","cayman islands","virgin islands",
+]);
+
+const AFRICA = new Set([
+  "algeria","angola","benin","botswana","burkina faso","burundi","cameroon","cape verde","central african republic",
+  "chad","comoros","congo","democratic republic of the congo","djibouti","egypt","equatorial guinea","eritrea",
+  "eswatini","ethiopia","gabon","gambia","ghana","guinea","guinea-bissau","ivory coast","cote d'ivoire","kenya",
+  "lesotho","liberia","libya","madagascar","malawi","mali","mauritania","mauritius","morocco","mozambique",
+  "namibia","niger","nigeria","rwanda","sao tome and principe","senegal","seychelles","sierra leone","somalia",
+  "south africa","south sudan","sudan","tanzania","togo","tunisia","uganda","zambia","zimbabwe",
+]);
+
+function normalizedCountryName(name: string) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/[’']/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function countryMatchesRegion(country: NokosCountry, region: NokosRegion) {
+  if (region === "all") return true;
+  const name = normalizedCountryName(country.name);
+  if (region === "southeast-asia") return SOUTHEAST_ASIA.has(name);
+  if (region === "europe") return EUROPE.has(name);
+  if (region === "americas") return AMERICAS.has(name);
+  if (region === "africa") return AFRICA.has(name);
+  return true;
+}
+
+function servicePopularity(service: NokosService) {
+  const haystack = `${service.name} ${service.code}`.toLowerCase();
+  const index = POPULAR_SERVICE_TERMS.findIndex((term) => haystack.includes(term));
+  return index === -1 ? 10_000 : index;
+}
+
+function sortCatalogRows(rows: Array<{ product: Product; service: NokosService }>, sort: NokosCatalogSort) {
+  if (sort === "price") {
+    rows.sort((a, b) => a.product.price - b.product.price || b.product.stock - a.product.stock);
+    return;
+  }
+  if (sort === "stock") {
+    rows.sort((a, b) => b.product.stock - a.product.stock || a.product.price - b.product.price);
+    return;
+  }
+  if (sort === "name") {
+    rows.sort((a, b) => a.product.name.localeCompare(b.product.name, "id-ID"));
+    return;
+  }
+  rows.sort(
+    (a, b) =>
+      servicePopularity(a.service) - servicePopularity(b.service) ||
+      b.product.stock - a.product.stock ||
+      a.product.price - b.product.price,
+  );
+}
+
+async function getServicePriceMap(
+  service: string,
+  server: "s1" | "s2",
+): Promise<Record<number, NokosPriceEntry>> {
+  const cacheKey = `service:${service}:${server}`;
+  const cached = servicePriceCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+  const data = await nokosRequest<Record<string, unknown>>("getPrices", {
+    query: { service, server },
+  });
+
+  const result: Record<number, NokosPriceEntry> = {};
+  for (const [countryKey, rawCountry] of Object.entries(data || {})) {
+    const countryId = int(countryKey, Number.NaN);
+    if (!Number.isFinite(countryId) || !rawCountry || typeof rawCountry !== "object") continue;
+    const countryRecord = rawCountry as Record<string, unknown>;
+
+    let entry: unknown = countryRecord[service];
+    if (!entry && ("cost" in countryRecord || "count" in countryRecord)) {
+      entry = countryRecord;
+    }
+    if (!entry || typeof entry !== "object") continue;
+
+    const priceEntry = entry as NokosPriceEntry;
+    const cost = Math.max(0, num(priceEntry.cost));
+    const count = Math.max(0, int(priceEntry.count));
+    if (cost > 0 || count > 0) result[countryId] = { cost, count };
+  }
+
+  servicePriceCache.set(cacheKey, { expiresAt: Date.now() + 30_000, data: result });
+  return result;
+}
+
 export async function getNokosCatalog(options?: {
   country?: number;
+  server?: "s1" | "s2";
   search?: string;
+  sort?: NokosCatalogSort;
+  minStock?: number;
+  maxPrice?: number;
   page?: number;
   limit?: number;
 }) {
@@ -402,41 +546,41 @@ export async function getNokosCatalog(options?: {
 
   const requestedCountry = int(options?.country, defaultCountry.id);
   const country = countries.find((item) => item.id === requestedCountry) || defaultCountry;
-  const [s1, s2] = await Promise.all([
-    getPriceMap(country.id, "s1").catch((): Record<string, NokosPriceEntry> => ({})),
-    getPriceMap(country.id, "s2").catch((): Record<string, NokosPriceEntry> => ({})),
-  ]);
+  const server = options?.server === "s1" ? "s1" : "s2";
+  const priceMap = await getPriceMap(country.id, server);
 
   const search = String(options?.search || "").trim().toLowerCase();
-  const rows: Product[] = [];
+  const minStock = Math.max(0, int(options?.minStock, 0));
+  const maxPrice = Math.max(0, int(options?.maxPrice, 0));
+  const sort: NokosCatalogSort =
+    options?.sort === "price" || options?.sort === "stock" || options?.sort === "name"
+      ? options.sort
+      : "popular";
+
+  const rows: Array<{ product: Product; service: NokosService }> = [];
   for (const service of services) {
     if (search && !`${service.name} ${service.code}`.toLowerCase().includes(search)) continue;
-    const candidates = (["s2", "s1"] as const)
-      .map((server) => {
-        const entry = (server === "s2" ? s2 : s1)[service.code];
-        return {
-          server,
-          providerPrice: Math.max(0, num(entry?.cost)),
-          stock: Math.max(0, int(entry?.count)),
-        };
-      })
-      .filter((item) => item.providerPrice > 0 && item.stock > 0)
-      .sort((a, b) => a.providerPrice - b.providerPrice || b.stock - a.stock);
 
-    const selected = candidates[0];
-    if (!selected) continue;
-    rows.push(
-      choiceToProduct({
-        service,
-        country,
-        server: selected.server,
-        providerPrice: selected.providerPrice,
-        stock: selected.stock,
-      }),
-    );
+    const entry = priceMap[service.code];
+    const providerPrice = Math.max(0, num(entry?.cost));
+    const stock = Math.max(0, int(entry?.count));
+    if (providerPrice <= 0 || stock <= 0) continue;
+
+    const product = choiceToProduct({
+      service,
+      country,
+      server,
+      providerPrice,
+      stock,
+    });
+
+    if (minStock > 0 && stock < minStock) continue;
+    if (maxPrice > 0 && product.price > maxPrice) continue;
+    rows.push({ product, service });
   }
 
-  rows.sort((a, b) => a.price - b.price || a.name.localeCompare(b.name, "id-ID"));
+  sortCatalogRows(rows, sort);
+
   const page = Math.max(1, int(options?.page, 1));
   const limit = Math.min(60, Math.max(12, int(options?.limit, 24)));
   const total = rows.length;
@@ -445,9 +589,79 @@ export async function getNokosCatalog(options?: {
   const start = (currentPage - 1) * limit;
 
   return {
-    products: rows.slice(start, start + limit),
+    products: rows.slice(start, start + limit).map((item) => item.product),
     countries,
     country,
+    server,
+    total,
+    page: currentPage,
+    totalPages,
+  };
+}
+
+export async function getNokosCheapestCatalog(options: {
+  service: string;
+  server?: "s1" | "s2";
+  sort?: NokosCheapestSort;
+  region?: NokosRegion;
+  minStock?: number;
+  maxPrice?: number;
+  page?: number;
+  limit?: number;
+}) {
+  const { services, countries } = await getNokosReference();
+  const serviceCode = String(options.service || "").trim();
+  const service = services.find((item) => item.code === serviceCode);
+  if (!service) throw new Error("Layanan yang dipilih tidak ditemukan.");
+
+  const server = options.server === "s1" ? "s1" : "s2";
+  const priceMap = await getServicePriceMap(service.code, server);
+  const minStock = Math.max(0, int(options.minStock, 0));
+  const maxPrice = Math.max(0, int(options.maxPrice, 0));
+  const region: NokosRegion =
+    options.region === "southeast-asia" ||
+    options.region === "europe" ||
+    options.region === "americas" ||
+    options.region === "africa"
+      ? options.region
+      : "all";
+  const sort: NokosCheapestSort =
+    options.sort === "stock" || options.sort === "name" ? options.sort : "price";
+
+  const rows: Product[] = [];
+  for (const country of countries) {
+    if (!countryMatchesRegion(country, region)) continue;
+    const entry = priceMap[country.id];
+    const providerPrice = Math.max(0, num(entry?.cost));
+    const stock = Math.max(0, int(entry?.count));
+    if (providerPrice <= 0 || stock <= 0) continue;
+
+    const product = choiceToProduct({ service, country, server, providerPrice, stock });
+    if (minStock > 0 && stock < minStock) continue;
+    if (maxPrice > 0 && product.price > maxPrice) continue;
+    rows.push(product);
+  }
+
+  if (sort === "stock") {
+    rows.sort((a, b) => b.stock - a.stock || a.price - b.price);
+  } else if (sort === "name") {
+    rows.sort((a, b) => (a.nokosCountryName || a.name).localeCompare(b.nokosCountryName || b.name, "id-ID"));
+  } else {
+    rows.sort((a, b) => a.price - b.price || b.stock - a.stock);
+  }
+
+  const page = Math.max(1, int(options.page, 1));
+  const limit = Math.min(60, Math.max(12, int(options.limit, 24)));
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const currentPage = Math.min(page, totalPages);
+  const start = (currentPage - 1) * limit;
+
+  return {
+    products: rows.slice(start, start + limit),
+    countries,
+    service,
+    server,
     total,
     page: currentPage,
     totalPages,
@@ -476,6 +690,7 @@ export async function createNokosActivation(input: {
   service: string;
   country: number;
   server: "s1" | "s2";
+  operator?: string;
   idempotencyKey: string;
 }) {
   const data = await nokosRequest<NokosActivation>("getNumber", {
@@ -484,6 +699,7 @@ export async function createNokosActivation(input: {
       service: input.service,
       country: input.country,
       server: input.server,
+      ...(input.operator && input.operator !== "any" ? { operator: input.operator } : {}),
     },
     idempotencyKey: input.idempotencyKey,
   });

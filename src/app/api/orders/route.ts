@@ -17,6 +17,7 @@ type OrderRequest = {
   paymentMethod?: "wallet" | "manual";
   target?: string;
   quantity?: number;
+  operator?: string;
 };
 
 function clean(value: unknown, maxLength: number): string {
@@ -92,6 +93,19 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as OrderRequest;
     const productId = clean(body.productId, 180);
     const requestedPayment = body.paymentMethod === "wallet" ? "wallet" : "manual";
+    const operatorCandidate =
+      clean(body.operator, 40).toLowerCase().replace(/[^a-z0-9_-]/g, "") || "any";
+    const requestedOperator = new Set([
+      "any",
+      "telkomsel",
+      "indosat",
+      "xl",
+      "tri",
+      "axis",
+      "smartfren",
+    ]).has(operatorCandidate)
+      ? operatorCandidate
+      : "any";
 
     if (!productId) {
       return jsonResponse({ ok: false, error: "Produk wajib dipilih." }, 400);
@@ -203,6 +217,7 @@ export async function POST(request: NextRequest) {
               country: product.nokosCountryId,
               countryName: product.nokosCountryName,
               server: product.nokosServer,
+              operator: requestedOperator,
             }
           : {}),
       },
@@ -235,6 +250,7 @@ export async function POST(request: NextRequest) {
             countryName: product.nokosCountryName || "",
             countryPrefix: product.nokosCountryPrefix || "",
             server: product.nokosServer,
+            operator: requestedOperator,
             stockAtOrder: product.stock,
           };
       const { error: itemError } = await admin
@@ -375,6 +391,7 @@ export async function POST(request: NextRequest) {
         country: parsed.country,
         countryName: product.nokosCountryName || "",
         server: parsed.server,
+        operator: requestedOperator,
       };
 
       const { data: supplierRow, error: supplierCreateError } = await admin
@@ -410,6 +427,7 @@ export async function POST(request: NextRequest) {
           service: parsed.service,
           country: parsed.country,
           server: parsed.server,
+          operator: requestedOperator,
           idempotencyKey: `qevanora-${created.order_code}`,
         });
 

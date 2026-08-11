@@ -15,15 +15,27 @@ function formatRupiah(value: number) {
   }).format(Number(value) || 0);
 }
 
+function serviceLabel(productName: string) {
+  return String(productName || "").split(" - ")[0].trim() || "layanan";
+}
+
 type Props = {
   productId: string;
   productName: string;
   price: number;
   stock: number;
   compact?: boolean;
+  operator?: string;
 };
 
-export default function NokosBuyButton({ productId, productName, price, stock, compact = false }: Props) {
+export default function NokosBuyButton({
+  productId,
+  productName,
+  price,
+  stock,
+  compact = false,
+  operator = "any",
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState(0);
@@ -32,6 +44,7 @@ export default function NokosBuyButton({ productId, productName, price, stock, c
 
   const prepare = async () => {
     if (sending || stock <= 0) return;
+
     const supabase = createClient();
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
@@ -39,16 +52,19 @@ export default function NokosBuyButton({ productId, productName, price, stock, c
       router.push("/login");
       return;
     }
+
     if (!readCustomerProfile()) {
       setOrderPageNotice("Lengkapi Nama dan WhatsApp pada halaman Profile Account terlebih dahulu.");
       router.push("/profile");
       return;
     }
+
     const { data: wallet } = await supabase
       .from("wallets")
       .select("balance")
       .eq("user_id", userData.user.id)
       .maybeSingle();
+
     setBalance(Number(wallet?.balance || 0));
     setError("");
     setOpen(true);
@@ -63,25 +79,45 @@ export default function NokosBuyButton({ productId, productName, price, stock, c
 
     setSending(true);
     setError("");
+
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, paymentMethod: "wallet" }),
+        body: JSON.stringify({
+          productId,
+          paymentMethod: "wallet",
+          operator,
+        }),
       });
+
       const text = await response.text();
-      let payload: { ok?: boolean; orderId?: string; newBalance?: number; error?: string; message?: string } = {};
+      let payload: {
+        ok?: boolean;
+        orderId?: string;
+        newBalance?: number;
+        error?: string;
+        message?: string;
+      } = {};
+
       try {
         payload = text ? JSON.parse(text) : {};
       } catch {
         payload = { ok: false, error: `Order gagal diproses (HTTP ${response.status}).` };
       }
+
       if (!response.ok || !payload.ok || !payload.orderId) {
         throw new Error(payload.error || "Order gagal diproses.");
       }
+
       if (typeof payload.newBalance === "number") {
-        window.dispatchEvent(new CustomEvent("qevanora-wallet-updated", { detail: { balance: payload.newBalance } }));
+        window.dispatchEvent(
+          new CustomEvent("qevanora-wallet-updated", {
+            detail: { balance: payload.newBalance },
+          }),
+        );
       }
+
       setOrderPageNotice(payload.message || `Order ${payload.orderId} berhasil dibuat.`);
       setOpen(false);
       router.push("/notifications");
@@ -98,14 +134,14 @@ export default function NokosBuyButton({ productId, productName, price, stock, c
   return (
     <>
       {compact ? (
-        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_42px] gap-2">
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_38px] gap-2">
           <button
             type="button"
             onClick={() => void prepare()}
             disabled={disabled}
-            className="inline-flex h-10 min-w-0 items-center justify-center rounded-xl bg-brand-500 px-3 text-xs font-bold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 min-w-0 items-center justify-center rounded-lg bg-brand-500 px-3 text-xs font-bold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span className="mr-1.5 text-sm" aria-hidden="true">↗</span>
+            <span className="mr-1.5 text-xs" aria-hidden="true">↗</span>
             {label}
           </button>
           <button
@@ -113,7 +149,7 @@ export default function NokosBuyButton({ productId, productName, price, stock, c
             onClick={() => void prepare()}
             disabled={disabled}
             aria-label={`Beli ${productName}`}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-brand-500/45 bg-brand-500/[0.06] text-xl font-light text-brand-500 transition hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-brand-500/45 bg-brand-500/[0.06] text-lg font-light text-brand-500 transition hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
             +
           </button>
@@ -130,43 +166,73 @@ export default function NokosBuyButton({ productId, productName, price, stock, c
       )}
 
       {open && (
-        <div className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/60 p-3 backdrop-blur-sm sm:items-center" role="dialog" aria-modal="true">
-          <div className="w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-gray-800 dark:bg-[#071321] sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-500">Pembayaran QEVANORA</p>
-                <h3 className="mt-2 text-xl font-bold text-gray-800 dark:text-white">Detail Order Nokos</h3>
-              </div>
-              <button type="button" onClick={() => !sending && setOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-lg text-gray-500 dark:border-gray-700 dark:text-gray-300">×</button>
+        <div
+          className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-sm rounded-[26px] border border-gray-200 bg-white p-5 shadow-2xl dark:border-[#1d3855] dark:bg-[#081625]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-brand-500/30 bg-brand-500/10 text-2xl text-brand-500">
+              ?
             </div>
 
-            <div className="mt-5 rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
-              <p className="text-sm font-semibold text-gray-800 dark:text-white/90">{productName}</p>
-              <p className="mt-3 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                Setelah pembayaran berhasil, nomor akan diterbitkan otomatis dan OTP akan tampil di halaman notifikasi.
-              </p>
-              <div className="mt-4 flex items-end justify-between gap-3 border-t border-gray-100 pt-4 dark:border-gray-800">
-                <span className="text-sm text-gray-500 dark:text-gray-400">Total</span>
-                <span className="text-xl font-bold text-brand-500">{formatRupiah(price)}</span>
-              </div>
-            </div>
+            <h3 className="mt-4 text-center text-xl font-black text-gray-900 dark:text-white">
+              Beli OTP {serviceLabel(productName)}?
+            </h3>
+            <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
+              Harga <span className="font-bold text-brand-500">{formatRupiah(price)}</span>
+            </p>
+            <p className="mt-2 text-center text-xs leading-5 text-gray-500 dark:text-gray-400">
+              Nomor akan dialokasikan otomatis. OTP akan muncul di halaman notifikasi setelah SMS diterima.
+            </p>
 
-            <button type="button" onClick={() => void buy()} disabled={sending || balance < price} className="mt-4 w-full rounded-2xl border border-brand-500/25 bg-brand-500/[0.06] p-4 text-left transition hover:border-brand-500/50 disabled:cursor-not-allowed disabled:opacity-55">
+            <div className="mt-4 rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-white/[0.07] dark:bg-white/[0.03]">
               <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-gray-800 dark:text-white/90">💰 Saldo QEVANORA</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Saldo kamu: {formatRupiah(balance)}</p>
-                </div>
-                <span className="text-sm font-bold text-brand-500">Bayar</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Saldo QEVANORA</span>
+                <span className="text-sm font-black text-gray-900 dark:text-white">{formatRupiah(balance)}</span>
               </div>
-            </button>
+              {operator !== "any" && (
+                <div className="mt-2 flex items-center justify-between gap-3 border-t border-gray-200 pt-2 dark:border-white/[0.07]">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Operator</span>
+                  <span className="text-xs font-bold capitalize text-gray-800 dark:text-gray-200">{operator}</span>
+                </div>
+              )}
+            </div>
 
             {balance < price && (
-              <p className="mt-2 text-xs leading-5 text-error-500">
-                Saldo kurang {formatRupiah(price - balance)}. <Link href="/profile#wallet-center" className="font-semibold underline">Top up saldo</Link> dulu.
+              <p className="mt-3 text-center text-xs leading-5 text-error-500">
+                Saldo kurang {formatRupiah(price - balance)}.{" "}
+                <Link href="/profile#wallet-center" className="font-semibold underline">
+                  Top up saldo
+                </Link>{" "}
+                dulu.
               </p>
             )}
-            {error && <div className="mt-3 rounded-xl border border-error-500/20 bg-error-500/10 p-3 text-sm leading-5 text-error-500">{error}</div>}
+
+            {error && (
+              <div className="mt-3 rounded-xl border border-error-500/20 bg-error-500/10 p-3 text-sm leading-5 text-error-500">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => !sending && setOpen(false)}
+                disabled={sending}
+                className="rounded-xl border border-gray-200 px-4 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-[#27425f] dark:text-gray-300 dark:hover:bg-white/[0.04]"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => void buy()}
+                disabled={sending || balance < price}
+                className="rounded-xl bg-brand-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {sending ? "Memproses..." : "Beli Sekarang"}
+              </button>
+            </div>
           </div>
         </div>
       )}
