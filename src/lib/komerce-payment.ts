@@ -207,16 +207,30 @@ export async function createKomercePayment(input: {
   return { raw, externalId, checkoutUrl, qrString, status };
 }
 
+function safeEqual(left: Buffer, right: Buffer) {
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
 export function verifyKomerceCallbackSignature(rawBody: string, signature: string | null) {
   const secret = getRequiredEnv("KOMERCE_CALLBACK_API_KEY");
-  const supplied = String(signature || "").trim().toLowerCase();
-  if (!supplied || !/^[a-f0-9]{64}$/.test(supplied)) return false;
+  const supplied = String(signature || "").trim().replace(/^sha256=/i, "");
+  if (!supplied) return false;
 
-  const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
-  const suppliedBuffer = Buffer.from(supplied, "hex");
-  const expectedBuffer = Buffer.from(expected, "hex");
+  const digest = createHmac("sha256", secret).update(rawBody, "utf8").digest();
 
-  return suppliedBuffer.length === expectedBuffer.length && timingSafeEqual(suppliedBuffer, expectedBuffer);
+  if (/^[a-f0-9]{64}$/i.test(supplied)) {
+    return safeEqual(Buffer.from(supplied, "hex"), digest);
+  }
+
+  if (/^[A-Za-z0-9+/]+={0,2}$/.test(supplied)) {
+    try {
+      return safeEqual(Buffer.from(supplied, "base64"), digest);
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
 }
 
 export function summarizeKomerceResponse(raw: JsonRecord) {
