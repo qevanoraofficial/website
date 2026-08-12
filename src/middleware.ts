@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { updateSupabaseSession } from "@/lib/supabase/proxy";
 
+// Edge middleware entrypoint for Cloudflare/OpenNext compatibility.
 export async function middleware(request: NextRequest) {
   return updateSupabaseSession(request);
 }
