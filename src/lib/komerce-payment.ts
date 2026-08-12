@@ -100,6 +100,10 @@ function getRequiredEnv(name: string) {
   return value;
 }
 
+function getOptionalEnv(name: string) {
+  return String(process.env[name] || "").trim();
+}
+
 export function getKomerceEnvironment(): KomerceEnvironment {
   return String(process.env.KOMERCE_PAYMENT_IS_PRODUCTION || "").trim().toLowerCase() === "true"
     ? "production"
@@ -124,8 +128,16 @@ function getConfig() {
   const environment = assertKomerceEnvironmentSafety();
   const apiKey = getRequiredEnv("KOMERCE_PAYMENT_API_KEY");
   const callbackApiKey = getRequiredEnv("KOMERCE_CALLBACK_API_KEY");
-  const paymentType = getRequiredEnv("KOMERCE_PAYMENT_TYPE");
-  const channelCode = getRequiredEnv("KOMERCE_PAYMENT_CHANNEL_CODE");
+  const paymentType = getRequiredEnv("KOMERCE_PAYMENT_TYPE").toLowerCase();
+  const channelCode = getOptionalEnv("KOMERCE_PAYMENT_CHANNEL_CODE");
+
+  // GET /api/v1/user/methods mengembalikan QRIS dengan bank_code kosong.
+  // VA tetap membutuhkan kode bank/channel yang valid.
+  if (paymentType !== "qris" && !channelCode) {
+    throw new Error(
+      "KOMERCE_PAYMENT_CHANNEL_CODE wajib diisi untuk metode non-QRIS. Ambil bank_code dari endpoint /api/v1/user/methods."
+    );
+  }
 
   return {
     environment,
@@ -182,6 +194,8 @@ export async function createKomercePayment(input: {
     body: JSON.stringify({
       order_id: input.orderId,
       payment_type: config.paymentType,
+      // Komerce tetap mendokumentasikan field ini pada create request.
+      // Untuk QRIS, nilai bank_code dari /methods memang string kosong.
       channel_code: config.channelCode,
       amount: input.amount,
       customer: input.customer,
@@ -200,7 +214,7 @@ export async function createKomercePayment(input: {
 
   if (!checkoutUrl && !qrString) {
     throw new Error(
-      "Komerce berhasil merespons tetapi tidak mengembalikan URL/QR pembayaran yang dikenali. Periksa kode channel QRIS dari endpoint /methods."
+      "Komerce berhasil merespons tetapi tidak mengembalikan URL/QR pembayaran yang dikenali."
     );
   }
 
@@ -238,6 +252,6 @@ export function summarizeKomerceResponse(raw: JsonRecord) {
     payment_id: findKomerceValue(raw, ["payment_id", "transaction_id", "id"]),
     status: findKomerceValue(raw, ["payment_status", "transaction_status", "status"]),
     payment_type: findKomerceValue(raw, ["payment_type"]),
-    channel_code: findKomerceValue(raw, ["channel_code", "channel"]),
+    channel_code: findKomerceValue(raw, ["channel_code", "channel", "bank_code"]),
   };
 }
