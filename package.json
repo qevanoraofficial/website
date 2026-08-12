@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "cf:build": "npx --yes --package=@opennextjs/cloudflare@1.20.2 --package=wrangler@4.121.0 opennextjs-cloudflare build",
+    "cf:deploy": "npx --yes --package=@opennextjs/cloudflare@1.20.2 --package=wrangler@4.121.0 opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
