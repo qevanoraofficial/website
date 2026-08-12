@@ -70,7 +70,9 @@ export async function POST(request: NextRequest) {
     const komerceEnvironment = assertKomerceEnvironmentSafety();
     const admin = createAdminClient();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    const paymentMethod = String(process.env.KOMERCE_PAYMENT_CHANNEL_CODE || "").trim() || "komerce";
+    const configuredPaymentType = String(process.env.KOMERCE_PAYMENT_TYPE || "").trim().toLowerCase();
+    const configuredChannelCode = String(process.env.KOMERCE_PAYMENT_CHANNEL_CODE || "").trim();
+    const paymentMethod = configuredChannelCode || configuredPaymentType || "komerce";
 
     const { data, error } = await admin.rpc("service_create_topup", {
       p_user_id: userData.user.id,
@@ -86,6 +88,8 @@ export async function POST(request: NextRequest) {
         source: "qevanora_web",
         gateway: "komerce_payment_api",
         komerce_environment: komerceEnvironment,
+        payment_type: configuredPaymentType || null,
+        channel_code: configuredChannelCode || null,
       },
     });
 
@@ -129,21 +133,24 @@ export async function POST(request: NextRequest) {
       });
 
       const responseSummary = summarizeKomerceResponse(payment.raw);
+      const resolvedPaymentMethod =
+        responseSummary.channel_code || responseSummary.payment_type || paymentMethod;
+
       const { error: updateError } = await admin
         .from("topups")
         .update({
           external_id: payment.externalId || topup.topup_code,
           checkout_url: payment.checkoutUrl,
           qr_string: payment.qrString,
-          payment_method: responseSummary.channel_code || paymentMethod,
+          payment_method: resolvedPaymentMethod,
           metadata: {
             source: "qevanora_web",
             gateway: "komerce_payment_api",
             komerce_environment: komerceEnvironment,
             payment_id: payment.externalId,
             payment_status: payment.status,
-            payment_type: responseSummary.payment_type,
-            channel_code: responseSummary.channel_code,
+            payment_type: responseSummary.payment_type || configuredPaymentType || null,
+            channel_code: responseSummary.channel_code || configuredChannelCode || null,
           },
         })
         .eq("id", topup.topup_id)
@@ -176,6 +183,8 @@ export async function POST(request: NextRequest) {
             source: "qevanora_web",
             gateway: "komerce_payment_api",
             komerce_environment: komerceEnvironment,
+            payment_type: configuredPaymentType || null,
+            channel_code: configuredChannelCode || null,
             error: paymentError instanceof Error ? paymentError.message : "komerce_create_failed",
           },
         })
