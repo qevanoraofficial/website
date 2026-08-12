@@ -3,9 +3,10 @@ import { assertSameOrigin } from "@/lib/order-session";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  assertMidtransEnvironmentSafety,
-  createMidtransSnapTransaction,
-} from "@/lib/midtrans";
+  assertKomerceEnvironmentSafety,
+  createKomercePayment,
+  summarizeKomerceResponse,
+} from "@/lib/komerce-payment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,15 +55,28 @@ export async function POST(request: NextRequest) {
       return jsonResponse({ ok: false, error: "Akun QEVANORA tidak aktif." }, 403);
     }
 
-    const midtransEnvironment = assertMidtransEnvironmentSafety();
+    const email = String(userData.user.email || "").trim();
+    const phone = String(profile.phone || "").trim();
+    if (!email) {
+      return jsonResponse({ ok: false, error: "Email akun diperlukan untuk pembayaran Komerce." }, 400);
+    }
+    if (!phone) {
+      return jsonResponse(
+        { ok: false, error: "Lengkapi nomor telepon profil sebelum melakukan top up." },
+        400
+      );
+    }
+
+    const komerceEnvironment = assertKomerceEnvironmentSafety();
     const admin = createAdminClient();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const paymentMethod = String(process.env.KOMERCE_PAYMENT_CHANNEL_CODE || "").trim() || "komerce";
 
     const { data, error } = await admin.rpc("service_create_topup", {
       p_user_id: userData.user.id,
       p_amount: amount,
-      p_provider: "midtrans",
-      p_method: "snap",
+      p_provider: "komerce",
+      p_method: paymentMethod,
       p_fee: 0,
       p_external_id: null,
       p_checkout_url: null,
@@ -70,8 +84,8 @@ export async function POST(request: NextRequest) {
       p_expires_at: expiresAt,
       p_metadata: {
         source: "qevanora_web",
-        gateway: "midtrans_snap",
-        midtrans_environment: midtransEnvironment,
+        gateway: "komerce_payment_api",
+        komerce_environment: komerceEnvironment,
       },
     });
 
@@ -95,46 +109,41 @@ export async function POST(request: NextRequest) {
     const origin = request.nextUrl.origin;
 
     try {
-      const payment = await createMidtransSnapTransaction({
-        transaction_details: {
-          order_id: topup.topup_code,
-          gross_amount: totalAmount,
+      const payment = await createKomercePayment({
+        orderId: topup.topup_code,
+        amount: totalAmount,
+        customer: {
+          name: profile.display_name || "Customer QEVANORA",
+          email,
+          phone,
         },
-        item_details: [
+        items: [
           {
-            id: "QEV-WALLET-TOPUP",
-            price: amount,
-            quantity: 1,
             name: "Top Up Saldo QEVANORA",
+            quantity: 1,
+            price: totalAmount,
           },
         ],
-        customer_details: {
-          first_name: profile.display_name || "Customer QEVANORA",
-          email: userData.user.email || undefined,
-          phone: profile.phone || undefined,
-        },
-        callbacks: {
-          finish: `${origin}/profile?payment=finish#wallet-center`,
-          error: `${origin}/profile?payment=error#wallet-center`,
-        },
-        expiry: {
-          duration: 24,
-          unit: "hours",
-        },
-        custom_field1: topup.topup_code,
-        custom_field2: userData.user.id,
+        callbackUrl: `${origin}/api/payments/komerce/callback`,
+        expiryDuration: 86_400,
       });
 
+      const responseSummary = summarizeKomerceResponse(payment.raw);
       const { error: updateError } = await admin
         .from("topups")
         .update({
-          external_id: topup.topup_code,
-          checkout_url: payment.redirect_url,
+          external_id: payment.externalId || topup.topup_code,
+          checkout_url: payment.checkoutUrl,
+          qr_string: payment.qrString,
+          payment_method: responseSummary.channel_code || paymentMethod,
           metadata: {
             source: "qevanora_web",
-            gateway: "midtrans_snap",
-            midtrans_environment: midtransEnvironment,
-            snap_token: payment.token,
+            gateway: "komerce_payment_api",
+            komerce_environment: komerceEnvironment,
+            payment_id: payment.externalId,
+            payment_status: payment.status,
+            payment_type: responseSummary.payment_type,
+            channel_code: responseSummary.channel_code,
           },
         })
         .eq("id", topup.topup_id)
@@ -147,10 +156,14 @@ export async function POST(request: NextRequest) {
           ok: true,
           topup: {
             ...topup,
-            checkout_url: payment.redirect_url,
+            checkout_url: payment.checkoutUrl,
+            qr_string: payment.qrString,
           },
-          checkout_url: payment.redirect_url,
-          message: "Pembayaran Midtrans berhasil dibuat. Kamu akan dialihkan ke halaman pembayaran.",
+          checkout_url: payment.checkoutUrl,
+          qr_string: payment.qrString,
+          message: payment.checkoutUrl
+            ? "Pembayaran Komerce berhasil dibuat. Kamu akan dialihkan ke halaman pembayaran."
+            : "Pembayaran QRIS Komerce berhasil dibuat.",
         },
         201
       );
@@ -161,9 +174,9 @@ export async function POST(request: NextRequest) {
           status: "failed",
           metadata: {
             source: "qevanora_web",
-            gateway: "midtrans_snap",
-            midtrans_environment: midtransEnvironment,
-            error: paymentError instanceof Error ? paymentError.message : "midtrans_create_failed",
+            gateway: "komerce_payment_api",
+            komerce_environment: komerceEnvironment,
+            error: paymentError instanceof Error ? paymentError.message : "komerce_create_failed",
           },
         })
         .eq("id", topup.topup_id)
