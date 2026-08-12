@@ -8,8 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "check": "tsc --noEmit",
-    "cf:build": "npx --yes --package=@opennextjs/cloudflare@1.20.2 --package=wrangler@4.121.0 opennextjs-cloudflare build",
-    "cf:deploy": "npx --yes --package=@opennextjs/cloudflare@1.20.2 --package=wrangler@4.121.0 opennextjs-cloudflare deploy"
+    "cf:build": "npx --yes --package=@opennextjs/cloudflare@1.18.1 --package=wrangler@4.65.0 opennextjs-cloudflare build",
+    "cf:deploy": "npx --yes --package=@opennextjs/cloudflare@1.18.1 --package=wrangler@4.65.0 opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.19",
