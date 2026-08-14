@@ -230,21 +230,18 @@ export async function DELETE(request: NextRequest) {
       },
     );
 
-    if (removed.imagePath) {
-      try {
-        await deleteRepositoryFile(
-          removed.imagePath,
-          `admin testimonial: hapus gambar ${id}`,
-        );
-      } catch {
-        // Data utama sudah terhapus; media dapat dibersihkan manual.
-      }
-    }
-
+    // Jangan membaca/decode file gambar di request DELETE. Pada Cloudflare
+    // Workers Free, file bukti besar bisa membuat request melewati batas CPU
+    // atau memory. Record testimoni tetap dihapus; media lama dibersihkan
+    // terpisah bila memang diperlukan.
     revalidateTestimonialPages();
 
     return NextResponse.json(
-      { ok: true, testimonial: removed },
+      {
+        ok: true,
+        testimonial: removed,
+        mediaCleanupDeferred: Boolean(removed.imagePath),
+      },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
