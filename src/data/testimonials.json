@@ -1,20 +1,5 @@
 [
   {
-    "id": "tst_mst9a4em_0920ea",
-    "status": "success",
-    "name": "Digie Store",
-    "productName": "FACEBOOK FRESH A2F ON - EMAIL AKSES",
-    "productPrice": 2500,
-    "quantity": 1,
-    "payment": "DANA",
-    "totalPrice": 2500,
-    "purchaseDate": "2026-08-15",
-    "imagePath": "storage/testimonials/tst_mst9a4em_0920ea.jpg",
-    "image": "/api/media?path=storage%2Ftestimonials%2Ftst_mst9a4em_0920ea.jpg",
-    "createdAt": "2026-08-14T18:03:43.438Z",
-    "updatedAt": "2026-08-14T18:03:43.438Z"
-  },
-  {
     "id": "tst_mst1b889_1b4514",
     "status": "success",
     "name": "guguga",
