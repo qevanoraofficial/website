@@ -5,7 +5,7 @@ const PREMIUM_APP_IMAGES: Array<{ pattern: RegExp; src: string }> = [
   },
   {
     pattern: /alight\s*motion|alightmotion/i,
-    src: "/images/premium-apps/alight-motion.svg",
+    src: "/images/premium-apps/alight-motion-user.svg",
   },
 ];
 
