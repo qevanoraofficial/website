@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import BuyProductButton from "@/components/products/BuyProductButton";
-import PanelProductConfigurator from "@/components/products/PanelProductConfigurator";
 import { getProducts } from "@/lib/catalog";
 import { getFollowProduct } from "@/lib/follow";
 import {
@@ -62,58 +61,44 @@ export default async function ProductDetailPage({
         {getFullDescription(product)}
       </p>
 
-      {product.category === "pterodactyl-panel" ? (
-        <PanelProductConfigurator
+      <div className="mt-8 flex items-center justify-between gap-4 border-y border-gray-200 py-5 dark:border-gray-800">
+        <p className="text-xl font-semibold text-gray-800 dark:text-white/90 sm:text-2xl">
+          {formatRupiah(product.ratePer1000 || product.price)}
+          {product.supplier === "follow" && <span className="ml-1 text-xs font-medium text-gray-400">/ 1.000</span>}
+        </p>
+
+        {product.supplier === "follow" ? (
+          <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+            Min {Number(product.minQuantity || 1).toLocaleString("id-ID")} • Max {Number(product.maxQuantity || product.stock).toLocaleString("id-ID")}
+          </span>
+        ) : (
+          <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+            Stok {product.stock}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        <BuyProductButton
           productId={product.id}
           productName={product.name}
-          category={product.category}
           categoryName={product.categoryName}
           price={product.price}
           stock={product.stock}
           supplier={product.supplier}
+          supplierProductId={product.supplierProductId}
+          minQuantity={product.minQuantity}
+          maxQuantity={product.maxQuantity}
+          ratePer1000={product.ratePer1000}
         />
-      ) : (
-        <>
-          <div className="mt-8 flex items-center justify-between gap-4 border-y border-gray-200 py-5 dark:border-gray-800">
-            <p className="text-xl font-semibold text-gray-800 dark:text-white/90 sm:text-2xl">
-              {formatRupiah(product.ratePer1000 || product.price)}
-              {product.supplier === "follow" && <span className="ml-1 text-xs font-medium text-gray-400">/ 1.000</span>}
-            </p>
 
-            {product.supplier === "follow" ? (
-              <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
-                Min {Number(product.minQuantity || 1).toLocaleString("id-ID")} • Max {Number(product.maxQuantity || product.stock).toLocaleString("id-ID")}
-              </span>
-            ) : (
-              <span className="shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-medium text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
-                Stok {product.stock}
-              </span>
-            )}
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <BuyProductButton
-              productId={product.id}
-              productName={product.name}
-              categoryName={product.categoryName}
-              price={product.price}
-              stock={product.stock}
-              supplier={product.supplier}
-              supplierProductId={product.supplierProductId}
-              minQuantity={product.minQuantity}
-              maxQuantity={product.maxQuantity}
-              ratePer1000={product.ratePer1000}
-            />
-
-            <Link
-              href={`/products/${product.category}`}
-              className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
-              Kembali
-            </Link>
-          </div>
-        </>
-      )}
+        <Link
+          href={`/products/${product.category}`}
+          className="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          Kembali
+        </Link>
+      </div>
     </article>
   );
 }
