@@ -51,9 +51,6 @@ export default async function PremiumAppsCatalog() {
           <h1 className="text-xl font-semibold text-gray-800 dark:text-white/90 sm:text-2xl">
             Premium Apps
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Pilih produk untuk melihat gambar, deskripsi lengkap, harga, dan stok sebelum membeli.
-          </p>
         </div>
         <span className="rounded-full border border-success-500/20 bg-success-500/10 px-3 py-1.5 text-xs font-semibold text-success-600 dark:text-success-500">
           LIVE
