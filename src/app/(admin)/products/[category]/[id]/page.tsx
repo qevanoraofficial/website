@@ -33,7 +33,7 @@ async function resolveProduct(category: string, id: string): Promise<Product | n
     return getFollowProduct(id);
   }
 
-  return getProduct(await getProducts(), category, id);
+  return getProduct(await getProducts(), category, id) ?? null;
 }
 
 export async function generateMetadata({
