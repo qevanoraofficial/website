@@ -5,7 +5,7 @@ import BuyProductButton from "@/components/products/BuyProductButton";
 import PremiumAppsBuyButton from "@/components/products/PremiumAppsBuyButton";
 import { getProducts } from "@/lib/catalog";
 import { getFollowProduct } from "@/lib/follow";
-import { getPremiumAppProduct } from "@/lib/premium-apps";
+import { getPremiumAppsCatalog } from "@/lib/premium-apps";
 import {
   formatRupiah,
   getFullDescription,
@@ -32,7 +32,8 @@ async function resolveProduct(category: string, id: string): Promise<Product | n
   const normalizedId = decodeRouteParam(id);
 
   if (category === "premium-apps") {
-    return getPremiumAppProduct(normalizedId);
+    const products = await getPremiumAppsCatalog();
+    return products.find((product) => product.id === normalizedId) ?? null;
   }
 
   if (
