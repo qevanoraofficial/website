@@ -5,6 +5,7 @@ import BuyProductButton from "@/components/products/BuyProductButton";
 import PremiumAppsBuyButton from "@/components/products/PremiumAppsBuyButton";
 import { getProducts } from "@/lib/catalog";
 import { getFollowProduct } from "@/lib/follow";
+import { getPremiumAppImage } from "@/lib/premium-app-images";
 import { getPremiumAppsCatalog } from "@/lib/premium-apps";
 import {
   formatRupiah,
@@ -73,7 +74,9 @@ export default async function ProductDetailPage({
   }
 
   const isPremiumApp = product.category === "premium-apps";
-  const image = product.image || "/images/products/product-placeholder.svg";
+  const image = isPremiumApp
+    ? getPremiumAppImage(product.name, product.image)
+    : product.image || "/images/products/product-placeholder.svg";
 
   return (
     <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
