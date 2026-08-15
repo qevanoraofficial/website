@@ -1,6 +1,6 @@
 const PREMIUM_APP_IMAGES: Array<{ pattern: RegExp; src: string }> = [
   {
-    pattern: /\bwinks\b/i,
+    pattern: /\bwinks?\b/i,
     src: "/images/premium-apps/winks-user.png",
   },
   {
