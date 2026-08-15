@@ -50,6 +50,9 @@ export function mapOrderForCustomer(row: OrderRow) {
   const phone = String(input.phone || supplierPayload.phone || "");
   const expiresAt = String(input.expiresAt || supplierPayload.expires_at || "");
   const activationId = String(input.activationId || supplierRow?.supplier_order_id || "");
+  const premiumCredentials = String(
+    input.premiumCredentials || supplierPayload.credentials_text || "",
+  ).slice(0, 6000);
 
   return {
     id: row.order_code || row.id,
@@ -71,6 +74,8 @@ export function mapOrderForCustomer(row: OrderRow) {
     otpCode,
     sms: String(input.sms || supplierPayload.sms || ""),
     expiresAt,
+    premiumCredentials,
+    providerOrderId: String(input.providerOrderId || supplierRow?.supplier_order_id || ""),
     canCancel: supplier === "nokos" && toLegacyStatus(row.status) === "accepted" && !otpCode && Boolean(activationId),
   };
 }
@@ -106,5 +111,6 @@ export function mapOrderForBot(
     quantity: mapped.quantity,
     phone: mapped.phone,
     otpCode: mapped.otpCode,
+    premiumCredentials: mapped.premiumCredentials,
   };
 }
