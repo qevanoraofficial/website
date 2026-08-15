@@ -206,7 +206,7 @@ function toCatalogProduct(provider: PremiumProviderProduct): Product {
     categoryName: "Premium Apps",
     name: provider.name,
     shortDescription: description,
-    fullDescription: `${description}\n\nStok tersedia: ${provider.stock.toLocaleString("id-ID")}\nPengiriman data akun dilakukan otomatis setelah pembayaran Saldo QEVANORA berhasil.`,
+    fullDescription: `${description}\n\nStok tersedia: ${provider.stock.toLocaleString("id-ID")}\nPengiriman data akun dilakukan otomatis setelah pembayaran berhasil.`,
     description,
     price,
     stock: provider.stock,
