@@ -1,5 +1,21 @@
 [
   {
+    "id": "prd_mstulz0a_6c5a2b",
+    "category": "pterodactyl-panel",
+    "categoryName": "Pterodactyl Panel",
+    "name": "PANEL RUN BOT 4GB | 1 BULAN",
+    "shortDescription": "Panel Pterodactyl untuk run bot WhatsApp, Telegram dan semacam nya",
+    "fullDescription": "Panel Pterodactyl adalah sebuah platform open-source berbasis web yang dirancang untuk mengelola server game dan aplikasi lainnya dengan mudah dan efisien. Panel ini menyediakan antarmuka pengguna yang ramah (user-friendly) untuk mengelola berbagai aspek server, termasuk instalasi, konfigurasi, pemantauan, dan pengelolaan pengguna.\r\n\r\nBerikut adalah beberapa poin penting tentang Pterodactyl Panel:\r\n\r\n𝗢𝗽𝗲𝗻-𝘀𝗼𝘂𝗿𝗰𝗲:\r\nPterodactyl Panel dikembangkan secara terbuka, memungkinkan pengguna untuk berkontribusi pada pengembangan dan memodifikasinya sesuai kebutuhan.\r\n\r\n𝗠𝗮𝗻𝗮𝗷𝗲𝗺𝗲𝗻 𝗦𝗲𝗿𝘃𝗲𝗿:\r\nPanel ini memudahkan pengelolaan server game seperti Minecraft, Rust, CS:GO, dan banyak lagi, serta aplikasi lain yang berjalan di lingkungan server.\r\n\r\n𝗔𝗻𝘁𝗮𝗿𝗺𝘂𝗸𝗮 𝗪𝗲𝗯:\r\nPengguna dapat mengakses dan mengelola server mereka melalui antarmuka web yang mudah digunakan, tanpa perlu pengetahuan teknis yang mendalam tentang server.\r\n\r\n𝗞𝗲𝗮𝗺𝗮𝗻𝗮𝗻:\r\nPterodactyl Panel menggunakan isolasi Docker untuk menjaga keamanan dan stabilitas server, memastikan bahwa setiap server berjalan secara terpisah.\r\n\r\n𝗙𝗶𝘁𝘂𝗿:\r\nPanel ini menawarkan berbagai fitur, termasuk manajemen pengguna, pengaturan server, pemantauan sumber daya, otomatisasi, dan kemampuan untuk mengelola beberapa server dari satu panel.\r\n\r\n𝗙𝗹𝗲𝗸𝘀𝗶𝗯𝗲𝗹:\r\nPterodactyl Panel dapat digunakan untuk berbagai jenis server, baik untuk kebutuhan pribadi maupun bisnis.\r\n\r\n𝗦𝗸𝗮𝗹𝗮𝗯𝗶𝗹𝗶𝘁𝗮𝘀:\r\nPanel ini dirancang untuk dapat diskalakan, memungkinkan pengguna untuk menambah atau mengurangi sumber daya server sesuai kebutuhan.\r\n\r\nKesimpulannya, Pterodactyl Panel adalah alat yang kuat dan serbaguna untuk mengelola server game dan aplikasi, menawarkan kemudahan penggunaan, keamanan, dan fleksibilitas bagi pengguna dari berbagai latar belakang.\r\n\r\n𝗥𝗔𝗠 𝟰 𝗚𝗕\r\n𝗖𝗣𝗨 𝟮𝟬𝟬%\r\n𝗗𝗜𝗦𝗞 𝟰𝟬 𝗚𝗕\r\n\r\nFull Garansi kalau menaati sesuai S&K.",
+    "description": "Panel Pterodactyl untuk run bot WhatsApp, Telegram dan semacam nya",
+    "price": 2000,
+    "stock": 0,
+    "active": true,
+    "imagePath": "storage/products/prd_mstulz0a_6c5a2b.jpg",
+    "image": "/api/media?path=storage%2Fproducts%2Fprd_mstulz0a_6c5a2b.jpg",
+    "createdAt": "2026-08-15T04:00:48.250Z",
+    "updatedAt": "2026-08-15T04:00:48.250Z"
+  },
+  {
     "id": "prd_mstuik9p_0a9df7",
     "category": "pterodactyl-panel",
     "categoryName": "Pterodactyl Panel",
