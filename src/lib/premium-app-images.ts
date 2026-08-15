@@ -1,11 +1,11 @@
 const PREMIUM_APP_IMAGES: Array<{ pattern: RegExp; src: string }> = [
   {
     pattern: /\bviu\b/i,
-    src: "/images/premium-apps/viu.svg",
+    src: "/images/premium-apps/viu-user.png",
   },
   {
     pattern: /alight\s*motion|alightmotion/i,
-    src: "/images/premium-apps/alight-motion-user.svg",
+    src: "/images/premium-apps/alight-motion-user.png",
   },
   {
     pattern: /\bcanva\b/i,
