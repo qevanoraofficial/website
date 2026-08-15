@@ -4,7 +4,6 @@ import testimonialsFallback from "@/data/testimonials.json";
 import { getStoragePaths, readJsonArray } from "@/lib/github-store";
 import type { Product, TransactionTestimonial } from "@/types/catalog";
 
-
 async function readCatalogArray<T>(
   path: string,
   fallback: T[],
@@ -112,6 +111,7 @@ export async function getProducts(options?: {
     .map(normalizeProduct)
     .filter(
       (product) =>
+        product.category !== "pterodactyl-panel" &&
         Boolean(product.id) &&
         Boolean(product.name) &&
         Boolean(product.category) &&
