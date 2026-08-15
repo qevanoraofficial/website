@@ -2,6 +2,22 @@ import Link from "next/link";
 import { getPremiumAppImage } from "@/lib/premium-app-images";
 import { getPremiumAppsCatalog } from "@/lib/premium-apps";
 import { formatRupiah, getShortDescription } from "@/lib/products";
+import type { Product } from "@/types/catalog";
+
+function getCatalogDescription(product: Product) {
+  const description = getShortDescription(product);
+  const isViuPremium = product.category === "premium-apps" && /\bviu\b/i.test(product.name);
+
+  if (!isViuPremium) return description;
+
+  return description
+    .replace(
+      /,\s*HARGA\s+MURAH+\s+GASKAN,\s*BULK BISA CHAT ADMIN AJA,\s*KHUSUS BULK HARGA MIRING DISKON 10-30%\s*TANYAKAN LANGSUNG KE ADMIN\.?/gi,
+      "",
+    )
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
 
 export default async function PremiumAppsCatalog() {
   let products;
@@ -60,6 +76,7 @@ export default async function PremiumAppsCatalog() {
           {products.map((product) => {
             const detailHref = `/products/premium-apps/${encodeURIComponent(product.id)}`;
             const image = getPremiumAppImage(product.name, product.image);
+            const description = getCatalogDescription(product);
 
             return (
               <article
@@ -96,7 +113,7 @@ export default async function PremiumAppsCatalog() {
                   </div>
 
                   <p className="mt-3 line-clamp-3 text-sm leading-6 text-gray-500 dark:text-gray-400">
-                    {getShortDescription(product)}
+                    {description}
                   </p>
 
                   <div className="mt-auto pt-5">
@@ -110,10 +127,6 @@ export default async function PremiumAppsCatalog() {
                     >
                       Lihat Detail & Beli
                     </Link>
-
-                    <p className="mt-2 text-center text-[11px] leading-4 text-gray-400">
-                      Deskripsi lengkap ditampilkan sebelum pembelian.
-                    </p>
                   </div>
                 </div>
               </article>
