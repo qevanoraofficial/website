@@ -5,7 +5,7 @@ import BuyProductButton from "@/components/products/BuyProductButton";
 import PremiumAppsBuyButton from "@/components/products/PremiumAppsBuyButton";
 import { getProducts } from "@/lib/catalog";
 import { getFollowProduct } from "@/lib/follow";
-import { getPremiumAppsCatalog } from "@/lib/premium-apps";
+import { getPremiumAppProduct } from "@/lib/premium-apps";
 import {
   formatRupiah,
   getFullDescription,
@@ -20,20 +20,29 @@ type ProductDetailPageProps = {
   params: Promise<{ category: string; id: string }>;
 };
 
+function decodeRouteParam(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 async function resolveProduct(category: string, id: string): Promise<Product | null> {
+  const normalizedId = decodeRouteParam(id);
+
   if (category === "premium-apps") {
-    const products = await getPremiumAppsCatalog();
-    return products.find((product) => product.id === id) || null;
+    return getPremiumAppProduct(normalizedId);
   }
 
   if (
     (category === "followers-sosmed" || category === "nokos") &&
-    id.startsWith("follow-")
+    normalizedId.startsWith("follow-")
   ) {
-    return getFollowProduct(id);
+    return getFollowProduct(normalizedId);
   }
 
-  return getProduct(await getProducts(), category, id) ?? null;
+  return getProduct(await getProducts(), category, normalizedId) ?? null;
 }
 
 export async function generateMetadata({
