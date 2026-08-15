@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getPremiumAppImage } from "@/lib/premium-app-images";
 import { getPremiumAppsCatalog } from "@/lib/premium-apps";
 import { formatRupiah, getShortDescription } from "@/lib/products";
 
@@ -58,7 +59,7 @@ export default async function PremiumAppsCatalog() {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {products.map((product) => {
             const detailHref = `/products/premium-apps/${encodeURIComponent(product.id)}`;
-            const image = product.image || "/images/products/product-placeholder.svg";
+            const image = getPremiumAppImage(product.name, product.image);
 
             return (
               <article
