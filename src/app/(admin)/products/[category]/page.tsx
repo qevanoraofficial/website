@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getProducts } from "@/lib/catalog";
 import FollowServicesCatalog from "@/components/products/FollowServicesCatalog";
 import NokosCatalog from "@/components/products/NokosCatalog";
+import PremiumAppsCatalog from "@/components/products/PremiumAppsCatalog";
 import {
   formatRupiah,
   getCategoryProducts,
@@ -49,6 +50,10 @@ export default async function ProductCategoryPage({
 
   if (!categoryData) {
     notFound();
+  }
+
+  if (category === "premium-apps") {
+    return <PremiumAppsCatalog />;
   }
 
   if (category === "followers-sosmed") {
