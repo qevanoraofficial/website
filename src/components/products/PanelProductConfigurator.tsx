@@ -12,9 +12,9 @@ type PanelProductConfiguratorProps = {
 };
 
 const DEFAULT_PANEL_PLAN = {
-  code: "panel-4gb",
-  label: "PANEL 4GB | 1 BULAN",
-  price: 2000,
+  code: "panel-unlimited",
+  label: "PANEL UNLIMITED | 1 BULAN",
+  price: 10000,
 } as const;
 
 function formatRupiah(value: number) {
