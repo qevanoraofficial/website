@@ -65,8 +65,10 @@ export default async function ProductDetailPage({
       {product.category === "pterodactyl-panel" ? (
         <PanelProductConfigurator
           productId={product.id}
+          productName={product.name}
           category={product.category}
           categoryName={product.categoryName}
+          price={product.price}
           stock={product.stock}
           supplier={product.supplier}
         />
