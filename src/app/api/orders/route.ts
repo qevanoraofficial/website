@@ -23,7 +23,6 @@ type OrderRequest = {
   panelUsername?: string;
 };
 
-
 const PANEL_PLANS = {
   "panel-4gb": { label: "PANEL 4GB | 1 BULAN", price: 2000 },
   "panel-7gb": { label: "PANEL 7GB | 1 BULAN", price: 5000 },
@@ -229,7 +228,8 @@ export async function POST(request: NextRequest) {
         return jsonResponse({ ok: false, error: "Username panel wajib diisi." }, 400);
       }
 
-      price = panelConfig.price;
+      // Harga panel wajib mengikuti harga produk yang dikelola dari admin panel.
+      price = Math.max(0, Math.round(Number(product.price) || 0));
     } else if (Number(product.stock) <= 0) {
       return jsonResponse({ ok: false, error: "Stok produk sedang habis." }, 409);
     }
@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await admin.rpc("service_create_catalog_order", {
       p_user_id: userData.user.id,
       p_product_id: supplierProductId,
-      p_product_name: panelConfig?.label || product.name,
+      p_product_name: product.name,
       p_category_name: product.categoryName,
       p_price: price,
       p_customer_data: {
@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
         email: userData.user.email || "",
         ...(isFollow ? { target, quantity } : {}),
         ...(isPanelProduct && panelConfig
-          ? { panelUsername, panelPlan: panelConfig.label, panelPlanCode }
+          ? { panelUsername, panelPlan: product.name, panelPlanCode }
           : {}),
         ...(isNokos
           ? {
@@ -292,7 +292,7 @@ export async function POST(request: NextRequest) {
           input_data: {
             categoryName: product.categoryName,
             panelUsername,
-            panelPlan: panelConfig.label,
+            panelPlan: product.name,
             panelPlanCode,
           },
         })
