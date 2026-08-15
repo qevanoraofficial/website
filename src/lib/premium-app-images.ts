@@ -9,7 +9,7 @@ const PREMIUM_APP_IMAGES: Array<{ pattern: RegExp; src: string }> = [
   },
   {
     pattern: /\bcanva\b/i,
-    src: "/images/premium-apps/canva-user.svg",
+    src: "/images/premium-apps/canva-user.png",
   },
 ];
 
