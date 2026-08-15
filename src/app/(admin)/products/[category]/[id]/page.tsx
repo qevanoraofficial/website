@@ -29,6 +29,24 @@ function decodeRouteParam(value: string) {
   }
 }
 
+function getDetailDescription(product: Product) {
+  const description = getFullDescription(product);
+  const isViuPremium = product.category === "premium-apps" && /\bviu\b/i.test(product.name);
+
+  if (!isViuPremium) return description;
+
+  return description
+    .replace(
+      /,\s*BULK BISA CHAT ADMIN AJA,\s*KHUSUS BULK HARGA MIRING DISKON 10-30%\s*TANYAKAN LANGSUNG KE ADMIN\.?/gi,
+      "",
+    )
+    .replace(/\bSaldo QEVANORA\b/gi, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/ {2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 async function resolveProduct(category: string, id: string): Promise<Product | null> {
   const normalizedId = decodeRouteParam(id);
 
@@ -59,7 +77,7 @@ export async function generateMetadata({
 
   return {
     title: `${product.name} | QEVANORA OFFICIAL`,
-    description: getFullDescription(product),
+    description: getDetailDescription(product),
   };
 }
 
@@ -77,6 +95,7 @@ export default async function ProductDetailPage({
   const image = isPremiumApp
     ? getPremiumAppImage(product.name, product.image)
     : product.image || "/images/products/product-placeholder.svg";
+  const detailDescription = getDetailDescription(product);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
@@ -91,10 +110,6 @@ export default async function ProductDetailPage({
                 loading="eager"
               />
             </div>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-brand-500/15 bg-brand-500/[0.06] p-4 text-sm leading-6 text-gray-600 dark:text-gray-300">
-            Baca detail dan ketentuan produk sampai selesai sebelum melakukan pembelian.
           </div>
         </div>
 
@@ -120,7 +135,7 @@ export default async function ProductDetailPage({
               Deskripsi Produk
             </h2>
             <p className="mt-3 whitespace-pre-line text-sm leading-7 text-gray-600 dark:text-gray-300 sm:text-base">
-              {getFullDescription(product)}
+              {detailDescription}
             </p>
           </div>
 
