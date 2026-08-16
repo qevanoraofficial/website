@@ -20,6 +20,30 @@ const PREMIUM_APP_IMAGES: Array<{ pattern: RegExp; src: string }> = [
     src: "/images/premium-apps/redeem-nitro-user.png",
   },
   {
+    pattern: /youtube/i,
+    src: "/images/premium-apps/youtube-user.png",
+  },
+  {
+    pattern: /\bvidio\b/i,
+    src: "/images/premium-apps/vidio-user.png",
+  },
+  {
+    pattern: /disney\s*\+?|disneyplus/i,
+    src: "/images/premium-apps/disney-plus-user.png",
+  },
+  {
+    pattern: /netflix/i,
+    src: "/images/premium-apps/netflix-user.png",
+  },
+  {
+    pattern: /gemini|chatgpt|openai/i,
+    src: "/images/premium-apps/gemini-chatgpt-user.png",
+  },
+  {
+    pattern: /iqiyi|wetv|youku|stv/i,
+    src: "/images/premium-apps/asia-streaming-user.png",
+  },
+  {
     pattern: /\bviu\b/i,
     src: "/images/premium-apps/viu-user.png",
   },
