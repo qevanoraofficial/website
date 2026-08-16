@@ -4,6 +4,10 @@ const PREMIUM_APP_IMAGES: Array<{ pattern: RegExp; src: string }> = [
     src: "/images/premium-apps/winks-user.png",
   },
   {
+    pattern: /cap\s*cut|capcut/i,
+    src: "/images/premium-apps/capcut-user.png",
+  },
+  {
     pattern: /\bviu\b/i,
     src: "/images/premium-apps/viu-user.png",
   },
