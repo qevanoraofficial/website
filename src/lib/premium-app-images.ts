@@ -24,7 +24,7 @@ const PREMIUM_APP_IMAGES: Array<{ pattern: RegExp; src: string }> = [
     src: "/images/premium-apps/youtube-user.png",
   },
   {
-    pattern: /\bvidio\b/i,
+    pattern: /vd\s*mobile|vidio/i,
     src: "/images/premium-apps/vidio-user.png",
   },
   {
