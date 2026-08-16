@@ -4,6 +4,8 @@ import { finishNokosActivation, getNokosActivationStatus } from "@/lib/nokos";
 
 type AdminClient = SupabaseClient;
 
+const NOKOS_SYNC_INTERVAL_MS = 5_000;
+
 type SupplierRow = {
   id: string;
   order_id: string;
@@ -101,7 +103,7 @@ export async function syncNokosOrdersForUser(admin: AdminClient, userId: string)
     .select("id, order_code, user_id, status, payment_status, payment_method")
     .eq("user_id", userId)
     .eq("supplier", "nokos")
-    .in("status", ["paid", "processing"])
+    .in("status", ["paid", "processing", "accepted"])
     .order("created_at", { ascending: false })
     .limit(20);
   if (orderError) throw orderError;
@@ -118,7 +120,7 @@ export async function syncNokosOrdersForUser(admin: AdminClient, userId: string)
 
   for (const supplier of (suppliers || []) as SupplierRow[]) {
     const lastUpdate = supplier.updated_at ? new Date(supplier.updated_at).getTime() : 0;
-    if (lastUpdate && Date.now() - lastUpdate < 10000) continue;
+    if (lastUpdate && Date.now() - lastUpdate < NOKOS_SYNC_INTERVAL_MS) continue;
     const order = orderMap.get(supplier.order_id);
     if (!order) continue;
     try {
@@ -150,7 +152,7 @@ export async function syncRecentNokosOrders(admin: AdminClient) {
 
   for (const supplier of suppliers as SupplierRow[]) {
     const lastUpdate = supplier.updated_at ? new Date(supplier.updated_at).getTime() : 0;
-    if (lastUpdate && Date.now() - lastUpdate < 10000) continue;
+    if (lastUpdate && Date.now() - lastUpdate < NOKOS_SYNC_INTERVAL_MS) continue;
     const order = orderMap.get(supplier.order_id);
     if (!order) continue;
     try {
