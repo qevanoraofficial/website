@@ -44,6 +44,14 @@ const PREMIUM_APP_IMAGES: Array<{ pattern: RegExp; src: string }> = [
     src: "/images/premium-apps/asia-streaming-user.png",
   },
   {
+    pattern: /hma\s*vpn|hide\s*my\s*ass/i,
+    src: "/images/premium-apps/mystery-2026-user.png",
+  },
+  {
+    pattern: /akses\s*drama\s*1\s*bulan|akses\s*drama\s*3\s*bulan|akses\s*drama/i,
+    src: "/images/premium-apps/video-apps-bundle-user.png",
+  },
+  {
     pattern: /\bviu\b/i,
     src: "/images/premium-apps/viu-user.png",
   },
