@@ -9,6 +9,7 @@ import {
   parseNokosProductId,
 } from "@/lib/nokos";
 import { syncNokosOrdersForUser } from "@/lib/nokos-order-sync";
+import { getKomerceEnvironment } from "@/lib/komerce-payment";
 import { assertSameOrigin } from "@/lib/order-session";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -136,6 +137,18 @@ export async function POST(request: NextRequest) {
 
     const isFollowProduct = productId.startsWith("follow-");
     const isNokosProduct = productId.startsWith("nokos:");
+
+    if (isNokosProduct && getKomerceEnvironment() !== "production") {
+      return jsonResponse(
+        {
+          ok: false,
+          code: "KOMERCE_SANDBOX_NOKOS_BLOCKED",
+          error:
+            "Checkout NOKOS dinonaktifkan selama pembayaran Komerce masih Sandbox. Saldo test tidak boleh dipakai membeli nomor provider live.",
+        },
+        503,
+      );
+    }
 
     if (
       isNokosProduct &&
@@ -338,6 +351,17 @@ export async function POST(request: NextRequest) {
               code: "CHECKOUT_KEY_CONFLICT",
               retryWithNewCheckoutKey: true,
               error: "Sesi checkout sudah dipakai untuk transaksi berbeda. Silakan ulangi checkout.",
+            },
+            409,
+          );
+        }
+        if (message.includes("sandbox_wallet_credit_present")) {
+          return jsonResponse(
+            {
+              ok: false,
+              code: "SANDBOX_WALLET_CREDIT_BLOCKED",
+              error:
+                "Akun ini masih memiliki kredit hasil top up Sandbox. Kredit test harus dibersihkan sebelum saldo production boleh dipakai untuk NOKOS.",
             },
             409,
           );
