@@ -181,10 +181,28 @@ function isPopularService(name: string) {
 
 function serviceBadge(name: string) {
   const value = normalized(serviceLabel(name));
-  if (value.includes("whatsapp")) return "WA";
+  if (value.includes("whatsapp")) {
+    return (
+      <img
+        src="/images/nokos/whatsapp.svg"
+        alt=""
+        aria-hidden="true"
+        className="h-6 w-6 object-contain"
+      />
+    );
+  }
   if (value.includes("telegram")) return "TG";
   if (value.includes("instagram")) return "IG";
-  if (value.includes("facebook")) return "FB";
+  if (value.includes("facebook")) {
+    return (
+      <img
+        src="/images/nokos/facebook.svg"
+        alt=""
+        aria-hidden="true"
+        className="h-6 w-6 object-contain"
+      />
+    );
+  }
   if (value.includes("tiktok")) return "TT";
   if (value.includes("google") || value.includes("youtube")) return "G";
   if (value.includes("discord")) return "DC";
