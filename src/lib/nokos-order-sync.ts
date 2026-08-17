@@ -19,6 +19,8 @@ type SupplierRow = {
   request_payload?: Record<string, unknown> | null;
   response_payload?: Record<string, unknown> | null;
   updated_at?: string | null;
+  recovery_locked_until?: string | null;
+  recovery_attempts?: number | null;
 };
 
 type OrderRow = {
@@ -29,6 +31,99 @@ type OrderRow = {
   payment_status: string;
   payment_method: string | null;
 };
+
+type ClaimedRecoveryRow = {
+  supplier_row_id: string;
+  order_id: string;
+  order_code: string;
+  user_id: string;
+  order_status: string;
+  payment_status: string;
+  payment_method: string | null;
+  supplier_order_id: string | null;
+  supplier_status: string;
+  request_payload?: Record<string, unknown> | null;
+  response_payload?: Record<string, unknown> | null;
+  supplier_updated_at?: string | null;
+  recovery_attempts?: number | null;
+  recovery_locked_until?: string | null;
+};
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function errorText(error: unknown) {
+  return (error instanceof Error ? error.message : String(error || "Unknown error")).slice(0, 2000);
+}
+
+async function mergeOrderInput(
+  admin: AdminClient,
+  orderId: string,
+  patch: Record<string, unknown>,
+) {
+  const { data: item, error: readError } = await admin
+    .from("order_items")
+    .select("input_data")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (readError) throw readError;
+
+  const current = asRecord(item?.input_data);
+  const { error: updateError } = await admin
+    .from("order_items")
+    .update({ input_data: { ...current, ...patch } })
+    .eq("order_id", orderId);
+  if (updateError) throw updateError;
+}
+
+async function releaseRecoveryLease(
+  admin: AdminClient,
+  supplierId: string,
+  lastError: string | null = null,
+) {
+  const { error } = await admin
+    .from("supplier_orders")
+    .update({
+      recovery_locked_until: null,
+      recovery_last_at: new Date().toISOString(),
+      recovery_last_error: lastError,
+    })
+    .eq("id", supplierId);
+  if (error) console.error(`[nokos] release recovery lease ${supplierId} gagal`, error);
+}
+
+async function markManualReview(
+  admin: AdminClient,
+  supplier: SupplierRow,
+  message: string,
+) {
+  const request = supplier.request_payload || {};
+  const response = supplier.response_payload || {};
+  const now = new Date().toISOString();
+  const { error } = await admin
+    .from("supplier_orders")
+    .update({
+      status: "processing",
+      error_message: message,
+      request_payload: { ...request, reconciliationRequired: true },
+      response_payload: {
+        ...response,
+        reconciliationRequired: true,
+        manualReviewRequired: true,
+        reviewMessage: message,
+      },
+      recovery_locked_until: null,
+      recovery_last_at: now,
+      recovery_last_error: message,
+      updated_at: now,
+    })
+    .eq("id", supplier.id);
+  if (error) throw error;
+}
+
 
 async function refund(admin: AdminClient, order: OrderRow, reason: string) {
   if (order.payment_method !== "wallet" || order.payment_status !== "paid") return;
@@ -196,11 +291,33 @@ async function reconcileMissingActivation(
   }
 }
 
+async function backfillActivationSnapshot(
+  admin: AdminClient,
+  supplier: SupplierRow,
+  order: OrderRow,
+) {
+  if (!supplier.supplier_order_id) return;
+  const response = supplier.response_payload || {};
+  const patch: Record<string, unknown> = {
+    ...(supplier.request_payload || {}),
+    activationId: supplier.supplier_order_id,
+    categoryName: "Nokos",
+  };
+  const phone = String(response.phone || "").trim();
+  const expiresAt = String(response.expires_at || "").trim();
+  if (phone) patch.phone = phone;
+  if (expiresAt) patch.expiresAt = expiresAt;
+  if (response.actual_provider_price !== undefined) patch.actualProviderPrice = response.actual_provider_price;
+  if (response.provider_price_drift !== undefined) patch.providerPriceDrift = response.provider_price_drift;
+  await mergeOrderInput(admin, order.id, patch);
+}
+
 async function syncOne(admin: AdminClient, supplier: SupplierRow, order: OrderRow) {
   if (!supplier.supplier_order_id) {
     await reconcileMissingActivation(admin, supplier, order);
     return;
   }
+  await backfillActivationSnapshot(admin, supplier, order);
   const data = await getNokosActivationStatus(supplier.supplier_order_id);
   const status = String(data.status || "").trim().toUpperCase();
   const mergedPayload = { ...(supplier.response_payload || {}), ...data };
@@ -278,13 +395,17 @@ export async function syncNokosOrdersForUser(admin: AdminClient, userId: string)
   const orderMap = new Map((orders as OrderRow[]).map((order) => [order.id, order]));
   const { data: suppliers, error: supplierError } = await admin
     .from("supplier_orders")
-    .select("id, order_id, supplier_order_id, status, request_payload, response_payload, updated_at")
+    .select("id, order_id, supplier_order_id, status, request_payload, response_payload, updated_at, recovery_locked_until, recovery_attempts")
     .eq("supplier", "nokos")
     .in("status", ["pending", "processing"])
     .in("order_id", Array.from(orderMap.keys()));
   if (supplierError) throw supplierError;
 
   for (const supplier of (suppliers || []) as SupplierRow[]) {
+    const lockedUntil = supplier.recovery_locked_until
+      ? new Date(supplier.recovery_locked_until).getTime()
+      : 0;
+    if (lockedUntil > Date.now()) continue;
     const lastUpdate = supplier.updated_at ? new Date(supplier.updated_at).getTime() : 0;
     if (lastUpdate && Date.now() - lastUpdate < NOKOS_SYNC_INTERVAL_MS) continue;
     const order = orderMap.get(supplier.order_id);
@@ -297,34 +418,120 @@ export async function syncNokosOrdersForUser(admin: AdminClient, userId: string)
   }
 }
 
+async function recoverClaimedNokos(
+  admin: AdminClient,
+  supplier: SupplierRow,
+  order: OrderRow,
+) {
+  if (supplier.supplier_order_id) {
+    await syncOne(admin, supplier, order);
+    return;
+  }
+
+  const request = supplier.request_payload || {};
+  const response = supplier.response_payload || {};
+  const attempts = Math.max(0, Math.trunc(Number(response.reconcileAttempts || 0)));
+  if (Boolean(response.manualReviewRequired) || attempts >= 3) {
+    await markManualReview(
+      admin,
+      supplier,
+      "Provider NOKOS belum memberi hasil final setelah 3 percobaan. Order diamankan untuk pengecekan admin; jangan membuat order ulang.",
+    );
+    return;
+  }
+
+  const service = String(request.service || "").trim();
+  const country = Number(request.country);
+  const server = request.server === "s1" ? "s1" : request.server === "s2" ? "s2" : null;
+  const providerIdempotencyKey = String(
+    request.providerIdempotencyKey || response.providerIdempotencyKey || `qevanora-${order.order_code}`,
+  ).trim();
+
+  if (!service || !Number.isInteger(country) || country < 0 || !server || !providerIdempotencyKey) {
+    await markManualReview(
+      admin,
+      supplier,
+      "Data recovery NOKOS tidak lengkap. Saldo tidak diubah otomatis; order diamankan untuk pengecekan admin.",
+    );
+    return;
+  }
+
+  // Force the existing Tahap-3 reconciler to run for stale crash rows. It uses
+  // the SAME provider idempotency key, so retrying cannot legitimately become a
+  // second purchase when the provider honors its idempotency contract.
+  await reconcileMissingActivation(
+    admin,
+    {
+      ...supplier,
+      request_payload: {
+        ...request,
+        providerIdempotencyKey,
+        reconciliationRequired: true,
+      },
+      response_payload: {
+        ...response,
+        providerIdempotencyKey,
+        reconciliationRequired: true,
+      },
+    },
+    order,
+  );
+}
+
 export async function syncRecentNokosOrders(admin: AdminClient) {
-  const { data: suppliers, error: supplierError } = await admin
-    .from("supplier_orders")
-    .select("id, order_id, supplier_order_id, status, request_payload, response_payload, updated_at")
-    .eq("supplier", "nokos")
-    .in("status", ["pending", "processing"])
-    .order("updated_at", { ascending: true })
-    .limit(20);
-  if (supplierError) throw supplierError;
-  if (!suppliers?.length) return;
+  const stats = { preparedOrphans: 0, claimed: 0, processed: 0, errors: 0 };
 
-  const ids = Array.from(new Set((suppliers as SupplierRow[]).map((row) => row.order_id)));
-  const { data: orders, error: orderError } = await admin
-    .from("orders")
-    .select("id, order_code, user_id, status, payment_status, payment_method")
-    .in("id", ids);
-  if (orderError) throw orderError;
-  const orderMap = new Map(((orders || []) as OrderRow[]).map((order) => [order.id, order]));
+  const { data: prepared, error: prepareError } = await admin.rpc(
+    "service_prepare_nokos_orphans_v1",
+    { p_limit: 20, p_stale_seconds: 90 },
+  );
+  if (prepareError) throw prepareError;
+  stats.preparedOrphans = Array.isArray(prepared)
+    ? prepared.filter((row) => Boolean(row?.created)).length
+    : 0;
 
-  for (const supplier of suppliers as SupplierRow[]) {
-    const lastUpdate = supplier.updated_at ? new Date(supplier.updated_at).getTime() : 0;
-    if (lastUpdate && Date.now() - lastUpdate < NOKOS_SYNC_INTERVAL_MS) continue;
-    const order = orderMap.get(supplier.order_id);
-    if (!order) continue;
+  const { data: claimed, error: claimError } = await admin.rpc(
+    "service_claim_nokos_recovery_v1",
+    { p_limit: 10, p_stale_seconds: 90, p_lease_seconds: 90 },
+  );
+  if (claimError) throw claimError;
+
+  const rows = (claimed || []) as ClaimedRecoveryRow[];
+  stats.claimed = rows.length;
+
+  for (const row of rows) {
+    const supplier: SupplierRow = {
+      id: row.supplier_row_id,
+      order_id: row.order_id,
+      supplier_order_id: row.supplier_order_id,
+      status: row.supplier_status,
+      request_payload: row.request_payload || {},
+      response_payload: row.response_payload || {},
+      updated_at: row.supplier_updated_at,
+      recovery_locked_until: row.recovery_locked_until,
+      recovery_attempts: row.recovery_attempts,
+    };
+    const order: OrderRow = {
+      id: row.order_id,
+      order_code: row.order_code,
+      user_id: row.user_id,
+      status: row.order_status,
+      payment_status: row.payment_status,
+      payment_method: row.payment_method,
+    };
+
+    let lastError: string | null = null;
     try {
-      await syncOne(admin, supplier, order);
+      await recoverClaimedNokos(admin, supplier, order);
+      stats.processed += 1;
     } catch (error) {
-      console.error(`[nokos] sync ${supplier.supplier_order_id || supplier.id} gagal`, error);
+      stats.errors += 1;
+      lastError = errorText(error);
+      console.error(`[nokos] recovery ${supplier.supplier_order_id || supplier.id} gagal`, error);
+    } finally {
+      await releaseRecoveryLease(admin, supplier.id, lastError);
     }
   }
+
+  return stats;
 }

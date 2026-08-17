@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "main": ".open-next/worker.js",
+  "main": "./custom-worker.ts",
   "name": "website",
   "keep_vars": true,
   "compatibility_date": "2026-08-12",
@@ -20,5 +20,10 @@
   ],
   "images": {
     "binding": "IMAGES"
+  },
+  "triggers": {
+    "crons": [
+      "*/2 * * * *"
+    ]
   }
 }
