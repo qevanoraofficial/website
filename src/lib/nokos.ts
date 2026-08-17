@@ -135,6 +135,15 @@ function nokosPriceRupiah(value: unknown) {
   return Math.round(parsed);
 }
 
+function minimumSafeNokosPrice() {
+  const configured = Math.trunc(Number(process.env.NOKOS_MIN_PROVIDER_PRICE || 50));
+  return Number.isFinite(configured) && configured >= 1 ? configured : 50;
+}
+
+function isSafeNokosProviderPrice(value: number) {
+  return Number.isFinite(value) && value >= minimumSafeNokosPrice();
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -631,6 +640,35 @@ function choiceToProduct(choice: CatalogChoice): Product {
   };
 }
 
+function candidateToProduct(
+  service: NokosService,
+  country: NokosCountry,
+  server: "s1" | "s2",
+): Product {
+  return {
+    id: makeProductId(service.code, country.id, server),
+    category: "nokos",
+    categoryName: "Nokos",
+    name: `${service.name} - ${country.name}`,
+    shortDescription: `${country.name}${country.prefix ? ` (${country.prefix})` : ""}`,
+    fullDescription: `Nomor virtual untuk ${service.name}. Harga dan stok diverifikasi live sebelum ditampilkan dan diverifikasi ulang saat checkout.`,
+    description: `${service.name} • ${country.name}`,
+    price: 0,
+    stock: 0,
+    active: false,
+    image: "/images/products/product-placeholder.svg",
+    supplier: "nokos",
+    supplierProductId: service.code,
+    providerRate: 0,
+    providerCurrency: "IDR",
+    nokosServiceCode: service.code,
+    nokosCountryId: country.id,
+    nokosCountryName: country.name,
+    nokosCountryPrefix: country.prefix || "",
+    nokosServer: server,
+  };
+}
+
 type NokosCatalogSort = "popular" | "price" | "stock" | "name";
 type NokosCheapestSort = "price" | "stock" | "name";
 type NokosRegion = "all" | "southeast-asia" | "europe" | "americas" | "africa";
@@ -785,54 +823,39 @@ export async function getNokosCatalog(options?: {
   if (!defaultCountry) throw new Error("Daftar negara belum tersedia.");
 
   const requestedCountry = int(options?.country, defaultCountry.id);
-  const country = countries.find((item) => item.id === requestedCountry) || defaultCountry;
+  const country =
+    countries.find((item) => item.id === requestedCountry) || defaultCountry;
   const server: NokosServerMode =
     options?.server === "s1" ? "s1" : "s2";
 
-  const [s1Map, s2Map] = await Promise.all([
-    server === "s2"
-      ? Promise.resolve({} as Record<string, NokosPriceEntry>)
-      : getPriceMap(country.id, "s1"),
-    server === "s1"
-      ? Promise.resolve({} as Record<string, NokosPriceEntry>)
-      : getPriceMap(country.id, "s2"),
-  ]);
-
   const search = String(options?.search || "").trim().toLowerCase();
-  const minStock = Math.max(0, int(options?.minStock, 0));
-  const maxPrice = Math.max(0, int(options?.maxPrice, 0));
   const sort: NokosCatalogSort =
-    options?.sort === "price" || options?.sort === "stock" || options?.sort === "name"
-      ? options.sort
-      : "popular";
+    options?.sort === "name" ? "name" : "popular";
 
-  const rows: Array<{ product: Product; service: NokosService }> = [];
-  for (const service of services) {
-    if (search && !`${service.name} ${service.code}`.toLowerCase().includes(search)) continue;
-
-    const best = chooseBestServerPrice(
-      server === "s2" ? undefined : s1Map[service.code],
-      server === "s1" ? undefined : s2Map[service.code],
-    );
-    if (!best) continue;
-
-    const product = choiceToProduct({
+  const rows = services
+    .filter((service) => {
+      if (!search) return true;
+      return `${service.name} ${service.code}`.toLowerCase().includes(search);
+    })
+    .map((service) => ({
       service,
-      country,
-      server: best.server,
-      providerPrice: best.providerPrice,
-      stock: best.stock,
-    });
+      product: candidateToProduct(service, country, server),
+    }));
 
-    if (minStock > 0 && best.stock < minStock) continue;
-    if (maxPrice > 0 && product.price > maxPrice) continue;
-    rows.push({ product, service });
+  if (sort === "name") {
+    rows.sort((a, b) =>
+      a.service.name.localeCompare(b.service.name, "id-ID"),
+    );
+  } else {
+    rows.sort(
+      (a, b) =>
+        servicePopularity(a.service) - servicePopularity(b.service) ||
+        a.service.name.localeCompare(b.service.name, "id-ID"),
+    );
   }
 
-  sortCatalogRows(rows, sort);
-
   const page = Math.max(1, int(options?.page, 1));
-  const limit = Math.min(60, Math.max(12, int(options?.limit, 24)));
+  const limit = Math.min(8, Math.max(4, int(options?.limit, 8)));
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const currentPage = Math.min(page, totalPages);
@@ -843,12 +866,12 @@ export async function getNokosCatalog(options?: {
     countries,
     country,
     server,
+    quoteRequired: true,
     total,
     page: currentPage,
     totalPages,
   };
 }
-
 export async function getNokosCheapestCatalog(options: {
   service: string;
   server?: NokosServerMode;
@@ -969,7 +992,7 @@ export async function getNokosProduct(
 
       const providerPrice = nokosPriceRupiah(availability.price);
       const stock = Math.max(0, int(availability.available));
-      if (providerPrice <= 0 || stock <= 0) return null;
+      if (!isSafeNokosProviderPrice(providerPrice) || stock <= 0) return null;
 
       return choiceToProduct({
         service,
