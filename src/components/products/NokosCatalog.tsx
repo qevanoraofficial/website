@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import NokosBuyButton from "@/components/products/NokosBuyButton";
 
 type ServerMode = "auto" | "s1" | "s2";
@@ -32,6 +32,7 @@ type Product = {
   nokosCountryName?: string;
   nokosCountryPrefix?: string;
   nokosServer?: ServerMode;
+  quoteStatus?: "loading" | "ready" | "unavailable";
 };
 
 type CatalogPayload = {
@@ -54,6 +55,90 @@ type ReferencePayload = {
   countries?: Country[];
   error?: string;
 };
+
+type QuotePayload = {
+  ok?: boolean;
+  server?: "s1" | "s2";
+  sellingPrice?: number;
+  providerPrice?: number;
+  stock?: number;
+  checkedAt?: string;
+  error?: string;
+};
+
+function makeQuotedProductId(
+  service: string,
+  country: number,
+  server: "s1" | "s2",
+) {
+  return `nokos:${encodeURIComponent(service)}:${country}:${server}`;
+}
+
+async function quoteOneProduct(
+  product: Product,
+  serverMode: ServerMode,
+): Promise<Product> {
+  const service = String(product.nokosServiceCode || "").trim();
+  const country = Number(product.nokosCountryId);
+
+  if (!service || !Number.isInteger(country)) {
+    return { ...product, price: 0, stock: 0, quoteStatus: "unavailable" };
+  }
+
+  try {
+    const params = new URLSearchParams({
+      service,
+      country: String(country),
+      server: serverMode,
+    });
+    const response = await fetch(`/api/nokos/quote?${params.toString()}`, {
+      cache: "no-store",
+    });
+    const payload = await parseJson<QuotePayload>(response);
+
+    if (
+      !response.ok ||
+      !payload.ok ||
+      (payload.server !== "s1" && payload.server !== "s2") ||
+      !Number.isFinite(Number(payload.sellingPrice)) ||
+      Number(payload.sellingPrice) <= 0 ||
+      !Number.isFinite(Number(payload.stock)) ||
+      Number(payload.stock) <= 0
+    ) {
+      return { ...product, price: 0, stock: 0, quoteStatus: "unavailable" };
+    }
+
+    return {
+      ...product,
+      id: makeQuotedProductId(service, country, payload.server),
+      price: Math.round(Number(payload.sellingPrice)),
+      stock: Math.trunc(Number(payload.stock)),
+      nokosServer: payload.server,
+      quoteStatus: "ready",
+    };
+  } catch {
+    return { ...product, price: 0, stock: 0, quoteStatus: "unavailable" };
+  }
+}
+
+async function hydrateProductQuotes(
+  products: Product[],
+  serverMode: ServerMode,
+) {
+  const output = [...products];
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < products.length) {
+      const index = cursor;
+      cursor += 1;
+      output[index] = await quoteOneProduct(products[index], serverMode);
+    }
+  }
+
+  await Promise.all([worker(), worker()]);
+  return output;
+}
 
 type UserOrder = {
   id: string;
@@ -342,6 +427,7 @@ export default function NokosCatalog() {
   const [referenceLoading, setReferenceLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const catalogRequestRef = useRef(0);
 
   const selectedCountry = useMemo(
     () => countries.find((item) => item.id === country) || countries[0],
@@ -425,6 +511,7 @@ export default function NokosCatalog() {
       return;
     }
 
+    const requestId = ++catalogRequestRef.current;
     setLoading(true);
     setError("");
 
@@ -433,7 +520,7 @@ export default function NokosCatalog() {
         mode,
         server,
         page: String(page),
-        limit: "24",
+        limit: "12",
         minStock: String(minStock),
         maxPrice: String(maxPrice),
       });
@@ -457,13 +544,54 @@ export default function NokosCatalog() {
         throw new Error(payload.error || "Layanan OTP gagal dimuat.");
       }
 
-      setProducts(Array.isArray(payload.products) ? payload.products : []);
+      const discoveryProducts = (
+        Array.isArray(payload.products) ? payload.products : []
+      ).map((product) => ({
+        ...product,
+        price: 0,
+        stock: 0,
+        quoteStatus: "loading" as const,
+      }));
+
+      setProducts(discoveryProducts);
       setTotal(Number(payload.total || 0));
       setTotalPages(Math.max(1, Number(payload.totalPages || 1)));
 
       if (countries.length === 0 && Array.isArray(payload.countries)) {
         setCountries(payload.countries);
       }
+
+      void hydrateProductQuotes(discoveryProducts, server).then((quoted) => {
+        if (catalogRequestRef.current !== requestId) return;
+
+        const ready = quoted.filter((product) => product.quoteStatus === "ready");
+        const unavailable = quoted.filter(
+          (product) => product.quoteStatus !== "ready",
+        );
+
+        if (mode === "country") {
+          if (countrySort === "price") {
+            ready.sort((a, b) => a.price - b.price || b.stock - a.stock);
+          } else if (countrySort === "stock") {
+            ready.sort((a, b) => b.stock - a.stock || a.price - b.price);
+          } else if (countrySort === "name") {
+            ready.sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
+          }
+        } else if (cheapestSort === "price") {
+          ready.sort((a, b) => a.price - b.price || b.stock - a.stock);
+        } else if (cheapestSort === "stock") {
+          ready.sort((a, b) => b.stock - a.stock || a.price - b.price);
+        } else {
+          ready.sort((a, b) =>
+            (a.nokosCountryName || a.name).localeCompare(
+              b.nokosCountryName || b.name,
+              "id-ID",
+            ),
+          );
+        }
+
+        setProducts([...ready, ...unavailable]);
+      });
     } catch (err) {
       setProducts([]);
       setTotal(0);
@@ -973,16 +1101,26 @@ export default function NokosCatalog() {
                     <div className="min-w-0">
                       <h2 className="line-clamp-2 text-xs font-black leading-4 text-white">{label}</h2>
                       <p className="mt-0.5 truncate text-[9px] text-gray-500">
-                        {Number(product.stock).toLocaleString("id-ID")} stok{product.nokosServer ? ` • ${product.nokosServer === "s1" ? "Express" : "Plus"}` : ""}
+                        {product.quoteStatus === "ready"
+                          ? `${Number(product.stock).toLocaleString("id-ID")} stok${product.nokosServer ? ` • ${product.nokosServer === "s1" ? "Express" : "Plus"}` : ""}`
+                          : product.quoteStatus === "unavailable"
+                            ? "Quote live tidak tersedia"
+                            : "Memuat harga & stok live..."}
                       </p>
                     </div>
                   </div>
 
                   <p className="mt-3 text-sm font-black text-brand-500">
-                    {formatRupiah(product.price)}
-                    <span className="ml-2 align-middle text-[9px] font-black tracking-wide text-emerald-500">
-                      LIVE API
-                    </span>
+                    {product.quoteStatus === "ready"
+                      ? formatRupiah(product.price)
+                      : product.quoteStatus === "unavailable"
+                        ? "Tidak tersedia"
+                        : "Memuat harga live..."}
+                    {product.quoteStatus === "ready" && (
+                      <span className="ml-2 align-middle text-[9px] font-black tracking-wide text-emerald-500">
+                        LIVE API
+                      </span>
+                    )}
                   </p>
                   <NokosBuyButton
                     compact
@@ -991,6 +1129,7 @@ export default function NokosCatalog() {
                     price={product.price}
                     stock={product.stock}
                     operator={operator}
+                    quoteStatus={product.quoteStatus}
                   />
                 </article>
               );
@@ -1024,7 +1163,11 @@ export default function NokosCatalog() {
                         )}
                       </div>
                       <p className="mt-0.5 text-[10px] text-gray-500">
-                        {Number(product.stock).toLocaleString("id-ID")} stok{product.nokosServer ? ` • ${product.nokosServer === "s1" ? "Express" : "Plus"}` : ""}
+                        {product.quoteStatus === "ready"
+                          ? `${Number(product.stock).toLocaleString("id-ID")} stok${product.nokosServer ? ` • ${product.nokosServer === "s1" ? "Express" : "Plus"}` : ""}`
+                          : product.quoteStatus === "unavailable"
+                            ? "Quote live tidak tersedia"
+                            : "Memuat harga & stok live..."}
                       </p>
                     </div>
                     {index === 0 && (
@@ -1036,10 +1179,16 @@ export default function NokosCatalog() {
 
                   <div className="mt-2 flex items-end justify-between gap-3">
                     <p className="text-sm font-black text-brand-500">
-                      {formatRupiah(product.price)}
-                      <span className="ml-2 align-middle text-[9px] font-black tracking-wide text-emerald-500">
-                        LIVE API
-                      </span>
+                      {product.quoteStatus === "ready"
+                        ? formatRupiah(product.price)
+                        : product.quoteStatus === "unavailable"
+                          ? "Tidak tersedia"
+                          : "Memuat harga live..."}
+                      {product.quoteStatus === "ready" && (
+                        <span className="ml-2 align-middle text-[9px] font-black tracking-wide text-emerald-500">
+                          LIVE API
+                        </span>
+                      )}
                     </p>
                     <div className="w-[132px] max-w-[48%]">
                       <NokosBuyButton
@@ -1049,6 +1198,7 @@ export default function NokosCatalog() {
                         price={product.price}
                         stock={product.stock}
                         operator="any"
+                        quoteStatus={product.quoteStatus}
                       />
                     </div>
                   </div>

@@ -33,6 +33,7 @@ type Props = {
   stock: number;
   compact?: boolean;
   operator?: string;
+  quoteStatus?: "loading" | "ready" | "unavailable";
 };
 
 export default function NokosBuyButton({
@@ -42,6 +43,7 @@ export default function NokosBuyButton({
   stock,
   compact = false,
   operator = "any",
+  quoteStatus = "ready",
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -52,7 +54,7 @@ export default function NokosBuyButton({
   const [error, setError] = useState("");
 
   const prepare = async () => {
-    if (sending || stock <= 0) return;
+    if (sending || quoteStatus !== "ready" || stock <= 0 || price <= 0) return;
 
     const supabase = createClient();
     const { data: userData } = await supabase.auth.getUser();
@@ -164,8 +166,19 @@ export default function NokosBuyButton({
     }
   };
 
-  const disabled = sending || stock <= 0;
-  const label = sending ? "Memproses..." : stock <= 0 ? "Stok Habis" : compact ? "Beli" : "Pilih Layanan";
+  const disabled =
+    sending || quoteStatus !== "ready" || stock <= 0 || price <= 0;
+  const label = sending
+    ? "Memproses..."
+    : quoteStatus === "loading"
+      ? "Cek Harga..."
+      : quoteStatus === "unavailable"
+        ? "Tidak Tersedia"
+        : stock <= 0
+          ? "Stok Habis"
+          : compact
+            ? "Beli"
+            : "Pilih Layanan";
 
   return (
     <>

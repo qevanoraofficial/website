@@ -491,6 +491,77 @@ async function getLiveNokosAvailability(
 type NokosServerMode = "auto" | "s1" | "s2";
 type NokosConcreteServer = "s1" | "s2";
 
+export async function getNokosLiveQuote(input: {
+  service: string;
+  country: number;
+  server: NokosServerMode;
+  force?: boolean;
+}) {
+  const service = String(input.service || "").trim();
+  const country = Math.trunc(Number(input.country));
+  if (!service || !Number.isInteger(country) || country < 0) {
+    throw new Error("Parameter quote NOKOS tidak valid.");
+  }
+
+  const servers: NokosConcreteServer[] =
+    input.server === "auto"
+      ? ["s1", "s2"]
+      : [input.server === "s1" ? "s1" : "s2"];
+
+  const quotes = (
+    await Promise.all(
+      servers.map(async (server) => {
+        try {
+          const availability = await getLiveNokosAvailability(
+            service,
+            country,
+            server,
+            { force: Boolean(input.force) },
+          );
+          const providerPrice = nokosPriceRupiah(availability.price);
+          const stock = Math.max(0, int(availability.available));
+          if (providerPrice <= 0 || stock <= 0) return null;
+          return {
+            server,
+            providerPrice,
+            sellingPrice: sellingPrice(providerPrice),
+            stock,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    )
+  ).filter(
+    (
+      item,
+    ): item is {
+      server: NokosConcreteServer;
+      providerPrice: number;
+      sellingPrice: number;
+      stock: number;
+    } => Boolean(item),
+  );
+
+  quotes.sort(
+    (a, b) =>
+      a.providerPrice - b.providerPrice ||
+      b.stock - a.stock ||
+      (a.server === "s2" ? -1 : 1),
+  );
+
+  const best = quotes[0];
+  if (!best) {
+    throw new Error("Harga/stok live provider sedang tidak tersedia.");
+  }
+
+  return {
+    ...best,
+    source: "getAvailability" as const,
+    checkedAt: new Date().toISOString(),
+  };
+}
+
 type NokosServerPriceChoice = {
   server: NokosConcreteServer;
   providerPrice: number;
@@ -910,32 +981,14 @@ export async function getNokosCatalog(options?: {
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * limit;
 
-  let liveProducts = await refreshVisibleNokosProducts(
-    rows.slice(start, start + limit).map((item) => item.product),
-    server,
-  );
-
-  liveProducts = liveProducts.filter((product) => {
-    if (minStock > 0 && product.stock < minStock) return false;
-    if (maxPrice > 0 && product.price > maxPrice) return false;
-    return product.active !== false && product.price > 0 && product.stock > 0;
-  });
-
-  if (sort === "price") {
-    liveProducts.sort((a, b) => a.price - b.price || b.stock - a.stock);
-  } else if (sort === "stock") {
-    liveProducts.sort((a, b) => b.stock - a.stock || a.price - b.price);
-  } else if (sort === "name") {
-    liveProducts.sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
-  }
+  const pageProducts = rows.slice(start, start + limit).map((item) => item.product);
 
   return {
-    products: liveProducts,
+    products: pageProducts,
     countries,
     country,
     server,
-    priceSource: "getAvailability",
-    priceCheckedAt: new Date().toISOString(),
+    priceSource: "client-live-quote",
     total,
     page: currentPage,
     totalPages,
@@ -1022,37 +1075,14 @@ export async function getNokosCheapestCatalog(options: {
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * limit;
 
-  let liveProducts = await refreshVisibleNokosProducts(
-    rows.slice(start, start + limit),
-    server,
-  );
-
-  liveProducts = liveProducts.filter((product) => {
-    if (minStock > 0 && product.stock < minStock) return false;
-    if (maxPrice > 0 && product.price > maxPrice) return false;
-    return product.active !== false && product.price > 0 && product.stock > 0;
-  });
-
-  if (sort === "stock") {
-    liveProducts.sort((a, b) => b.stock - a.stock || a.price - b.price);
-  } else if (sort === "name") {
-    liveProducts.sort((a, b) =>
-      (a.nokosCountryName || a.name).localeCompare(
-        b.nokosCountryName || b.name,
-        "id-ID",
-      ),
-    );
-  } else {
-    liveProducts.sort((a, b) => a.price - b.price || b.stock - a.stock);
-  }
+  const pageProducts = rows.slice(start, start + limit);
 
   return {
-    products: liveProducts,
+    products: pageProducts,
     countries,
     service,
     server,
-    priceSource: "getAvailability",
-    priceCheckedAt: new Date().toISOString(),
+    priceSource: "client-live-quote",
     total,
     page: currentPage,
     totalPages,
