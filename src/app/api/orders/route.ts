@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProducts } from "@/lib/catalog";
 import { createFollowOrder, getFollowProduct } from "@/lib/follow";
 import { syncFollowOrdersForUser } from "@/lib/follow-order-sync";
-import { createNokosActivation, getNokosProduct, parseNokosProductId } from "@/lib/nokos";
+import {
+  createNokosActivation,
+  getNokosProduct,
+  isAmbiguousNokosError,
+  parseNokosProductId,
+} from "@/lib/nokos";
 import { syncNokosOrdersForUser } from "@/lib/nokos-order-sync";
 import { assertSameOrigin } from "@/lib/order-session";
 import { createClient } from "@/lib/supabase/server";
@@ -19,6 +24,7 @@ type OrderRequest = {
   quantity?: number;
   operator?: string;
   quotedPrice?: number;
+  checkoutKey?: string;
   panelPlan?: string;
   panelUsername?: string;
 };
@@ -105,6 +111,10 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as OrderRequest;
     const productId = clean(body.productId, 180);
     const quotedPrice = Math.max(0, Math.round(Number(body.quotedPrice) || 0));
+    const checkoutKey = clean(
+      request.headers.get("idempotency-key") || body.checkoutKey,
+      120,
+    );
     const requestedPayment = body.paymentMethod === "wallet" ? "wallet" : "manual";
     const operatorCandidate =
       clean(body.operator, 40).toLowerCase().replace(/[^a-z0-9_-]/g, "") || "any";
@@ -126,6 +136,21 @@ export async function POST(request: NextRequest) {
 
     const isFollowProduct = productId.startsWith("follow-");
     const isNokosProduct = productId.startsWith("nokos:");
+
+    if (
+      isNokosProduct &&
+      (!checkoutKey || !/^[A-Za-z0-9._:-]{16,120}$/.test(checkoutKey))
+    ) {
+      return jsonResponse(
+        {
+          ok: false,
+          code: "CHECKOUT_KEY_REQUIRED",
+          error: "Sesi checkout NOKOS tidak valid. Tutup popup lalu buka kembali sebelum mencoba lagi.",
+        },
+        400,
+      );
+    }
+
     const [{ data: profile }, { data: wallet }, regularProducts] = await Promise.all([
       supabase
         .from("profiles")
@@ -151,7 +176,7 @@ export async function POST(request: NextRequest) {
     const product = isFollowProduct
       ? await getFollowProduct(productId)
       : isNokosProduct
-        ? await getNokosProduct(productId)
+        ? await getNokosProduct(productId, { force: true })
         : regularProducts.find((item) => item.id === productId) || null;
 
     if (!product || product.active === false) {
@@ -250,40 +275,121 @@ export async function POST(request: NextRequest) {
       : product.id;
     const supplierName = isFollow ? "follow" : isNokos ? "nokos" : "manual";
 
-    const { data, error } = await admin.rpc("service_create_catalog_order", {
-      p_user_id: userData.user.id,
-      p_product_id: supplierProductId,
-      p_product_name: product.name,
-      p_category_name: product.categoryName,
-      p_price: price,
-      p_customer_data: {
-        name: profile.display_name,
-        whatsapp: profile.phone,
-        telegram: profile.telegram_id || "",
-        email: userData.user.email || "",
-        ...(isFollow ? { target, quantity } : {}),
-        ...(isPanelProduct && panelConfig
-          ? { panelUsername, panelPlan: product.name, panelPlanCode }
-          : {}),
-        ...(isNokos
-          ? {
-              service: product.nokosServiceCode || supplierProductId,
-              country: product.nokosCountryId,
-              countryName: product.nokosCountryName,
-              server: product.nokosServer,
-              operator: requestedOperator,
-            }
-          : {}),
-      },
-      p_supplier: supplierName,
-    });
+    const customerData = {
+      name: profile.display_name,
+      whatsapp: profile.phone,
+      telegram: profile.telegram_id || "",
+      email: userData.user.email || "",
+      ...(isFollow ? { target, quantity } : {}),
+      ...(isPanelProduct && panelConfig
+        ? { panelUsername, panelPlan: product.name, panelPlanCode }
+        : {}),
+      ...(isNokos
+        ? {
+            service: product.nokosServiceCode || supplierProductId,
+            country: product.nokosCountryId,
+            countryName: product.nokosCountryName,
+            server: product.nokosServer,
+            operator: requestedOperator,
+          }
+        : {}),
+    };
 
-    if (error) throw error;
+    let created:
+      | { order_id: string; order_code: string; created_at: string }
+      | null = null;
+    let newBalance: number | undefined;
+    let duplicateCheckout = false;
 
-    const created = Array.isArray(data) ? data[0] : data;
-    if (!created?.order_code || !created?.order_id) {
-      throw new Error("Order Supabase gagal dibuat.");
+    if (isNokos) {
+      const checkoutFingerprint = [
+        product.id,
+        String(price),
+        requestedOperator,
+        String(product.nokosServer || ""),
+      ].join("|");
+
+      const { data: atomicData, error: atomicError } = await admin.rpc(
+        "service_create_nokos_wallet_order_v1",
+        {
+          p_user_id: userData.user.id,
+          p_product_id: supplierProductId,
+          p_product_name: product.name,
+          p_category_name: product.categoryName,
+          p_price: price,
+          p_customer_data: customerData,
+          p_checkout_key: checkoutKey,
+          p_checkout_fingerprint: checkoutFingerprint,
+        },
+      );
+
+      if (atomicError) {
+        const message = atomicError.message || "";
+        if (message.includes("insufficient_balance")) {
+          return jsonResponse(
+            { ok: false, code: "INSUFFICIENT_BALANCE", error: "Saldo QEVANORA tidak cukup untuk membayar order ini." },
+            409,
+          );
+        }
+        if (message.includes("checkout_key_conflict")) {
+          return jsonResponse(
+            {
+              ok: false,
+              code: "CHECKOUT_KEY_CONFLICT",
+              retryWithNewCheckoutKey: true,
+              error: "Sesi checkout sudah dipakai untuk transaksi berbeda. Silakan ulangi checkout.",
+            },
+            409,
+          );
+        }
+        throw atomicError;
+      }
+
+      const atomic = Array.isArray(atomicData) ? atomicData[0] : atomicData;
+      if (!atomic?.order_id || !atomic?.order_code) throw new Error("Order NOKOS atomic gagal dibuat.");
+
+      created = {
+        order_id: String(atomic.order_id),
+        order_code: String(atomic.order_code),
+        created_at: String(atomic.created_at || new Date().toISOString()),
+      };
+      newBalance = Number(atomic.new_balance || 0);
+      duplicateCheckout = Boolean(atomic.duplicate);
+
+      if (String(atomic.payment_status || "") !== "paid") {
+        return jsonResponse(
+          {
+            ok: false,
+            code: "NOKOS_CHECKOUT_FINALIZED",
+            retryWithNewCheckoutKey: true,
+            orderId: created.order_code,
+            newBalance,
+            error: "Checkout sebelumnya sudah selesai/dibatalkan. Tekan Beli lagi untuk membuat sesi transaksi baru.",
+          },
+          409,
+        );
+      }
+    } else {
+      const { data, error } = await admin.rpc("service_create_catalog_order", {
+        p_user_id: userData.user.id,
+        p_product_id: supplierProductId,
+        p_product_name: product.name,
+        p_category_name: product.categoryName,
+        p_price: price,
+        p_customer_data: customerData,
+        p_supplier: supplierName,
+      });
+      if (error) throw error;
+      const createdRow = Array.isArray(data) ? data[0] : data;
+      if (!createdRow?.order_code || !createdRow?.order_id) throw new Error("Order Supabase gagal dibuat.");
+      created = {
+        order_id: String(createdRow.order_id),
+        order_code: String(createdRow.order_code),
+        created_at: String(createdRow.created_at || new Date().toISOString()),
+      };
     }
+
+    if (!created) throw new Error("Order Supabase gagal dibuat.");
 
     if (isPanelProduct && panelConfig) {
       const { error: itemError } = await admin
@@ -300,7 +406,7 @@ export async function POST(request: NextRequest) {
       if (itemError) throw itemError;
     }
 
-    if (isFollow || isNokos) {
+    if (isFollow || (isNokos && !duplicateCheckout)) {
       const inputData = isFollow
         ? {
             categoryName: product.categoryName,
@@ -329,28 +435,23 @@ export async function POST(request: NextRequest) {
       if (itemError) throw itemError;
     }
 
-    let newBalance: number | undefined;
-
-    if (paymentMethod === "wallet") {
+    if (paymentMethod === "wallet" && !isNokos) {
       const { data: paymentData, error: paymentError } = await admin.rpc(
         "service_pay_order_with_wallet",
         { p_order_id: created.order_id }
       );
-
       if (paymentError) {
         await admin.rpc("service_set_order_status", {
           p_order_ref: created.order_code,
           p_status: "failed",
           p_error: paymentError.message || "Pembayaran saldo gagal.",
         });
-
         const message = paymentError.message || "";
         if (message.includes("insufficient_balance")) {
           return jsonResponse({ ok: false, error: "Saldo QEVANORA tidak cukup untuk membayar order ini." }, 409);
         }
         throw paymentError;
       }
-
       const paid = Array.isArray(paymentData) ? paymentData[0] : paymentData;
       newBalance = Number(paid?.new_balance || 0);
     }
@@ -442,6 +543,8 @@ export async function POST(request: NextRequest) {
         return jsonResponse(
           {
             ok: false,
+            code: "NOKOS_CHECKOUT_REFUNDED",
+            retryWithNewCheckoutKey: true,
             error: `${supplierMessage} Saldo QEVANORA sudah dikembalikan.`,
             orderId: created.order_code,
             newBalance: Number(refund?.new_balance || newBalance || 0),
@@ -454,6 +557,12 @@ export async function POST(request: NextRequest) {
     if (isNokos) {
       const parsed = parseNokosProductId(product.id);
       if (!parsed) throw new Error("Layanan Nokos tidak valid.");
+
+      const providerIdempotencyKey = `qevanora-${created.order_code}`;
+      const quotedProviderPrice = Math.max(
+        0,
+        Math.round(Number(product.providerRate || 0)),
+      );
       const requestPayload = {
         categoryName: "Nokos",
         service: parsed.service,
@@ -461,19 +570,20 @@ export async function POST(request: NextRequest) {
         countryName: product.nokosCountryName || "",
         server: parsed.server,
         operator: requestedOperator,
+        quotedProviderPrice,
+        quotedSellingPrice: price,
+        providerIdempotencyKey,
+        reconciliationRequired: false,
       };
 
-      const { data: supplierRow, error: supplierCreateError } = await admin
-        .from("supplier_orders")
-        .insert({
-          order_id: created.order_id,
-          supplier: "nokos",
-          status: "pending",
-          cost_amount: Math.max(0, Math.round(Number(product.providerRate || 0))),
-          request_payload: requestPayload,
-        })
-        .select("id")
-        .single();
+      const { data: supplierEnsureData, error: supplierCreateError } = await admin.rpc(
+        "service_ensure_nokos_supplier_order_v1",
+        {
+          p_order_id: created.order_id,
+          p_cost_amount: quotedProviderPrice,
+          p_request_payload: requestPayload,
+        },
+      );
 
       if (supplierCreateError) {
         const { data: refundData } = await admin.rpc("refund_order_to_wallet", {
@@ -484,10 +594,56 @@ export async function POST(request: NextRequest) {
         return jsonResponse(
           {
             ok: false,
+            code: "NOKOS_CHECKOUT_REFUNDED",
+            retryWithNewCheckoutKey: true,
             error: "Aktivasi gagal disiapkan. Saldo sudah dikembalikan.",
+            orderId: created.order_code,
             newBalance: Number(refund?.new_balance || newBalance || 0),
           },
           502
+        );
+      }
+
+      const ensured = Array.isArray(supplierEnsureData) ? supplierEnsureData[0] : supplierEnsureData;
+      if (!ensured?.supplier_row_id) throw new Error("Tracking supplier NOKOS gagal dibuat.");
+
+      const supplierRow = {
+        id: String(ensured.supplier_row_id),
+        supplier_order_id: String(ensured.supplier_order_id || ""),
+        response_payload:
+          ensured.response_payload && typeof ensured.response_payload === "object"
+            ? ensured.response_payload
+            : {},
+      };
+
+      if (supplierRow.supplier_order_id) {
+        const { data: existingItem } = await admin
+          .from("order_items")
+          .select("input_data")
+          .eq("order_id", created.order_id)
+          .maybeSingle();
+        const existingInput =
+          existingItem?.input_data && typeof existingItem.input_data === "object"
+            ? existingItem.input_data
+            : {};
+
+        return jsonResponse(
+          {
+            ok: true,
+            code: "NOKOS_DUPLICATE_CHECKOUT",
+            orderId: created.order_code,
+            createdAt: created.created_at,
+            status: "accepted",
+            paymentMethod,
+            newBalance,
+            phone: String(
+              (existingInput as Record<string, unknown>).phone ||
+                (supplierRow.response_payload as Record<string, unknown>).phone ||
+                "",
+            ),
+            message: `Request duplikat terdeteksi. Order ${created.order_code} yang sama digunakan kembali; saldo tidak dipotong lagi.`,
+          },
+          200,
         );
       }
 
@@ -497,16 +653,34 @@ export async function POST(request: NextRequest) {
           country: parsed.country,
           server: parsed.server,
           operator: requestedOperator,
-          idempotencyKey: `qevanora-${created.order_code}`,
+          idempotencyKey: providerIdempotencyKey,
         });
+
+        const actualProviderPrice = Math.max(
+          0,
+          Math.round(Number(activation.price || quotedProviderPrice || 0)),
+        );
+        const providerPriceDrift =
+          actualProviderPrice > 0 && quotedProviderPrice > 0
+            ? actualProviderPrice - quotedProviderPrice
+            : 0;
+        const responsePayload = {
+          ...activation,
+          quoted_provider_price: quotedProviderPrice,
+          actual_provider_price: actualProviderPrice,
+          provider_price_drift: providerPriceDrift,
+          provider_idempotency_key: providerIdempotencyKey,
+          reconciliationRequired: false,
+        };
 
         await admin
           .from("supplier_orders")
           .update({
             supplier_order_id: activation.activation_id,
             status: "processing",
-            cost_amount: Math.max(0, Math.round(Number(activation.price || product.providerRate || 0))),
-            response_payload: activation,
+            cost_amount: actualProviderPrice,
+            response_payload: responsePayload,
+            request_payload: requestPayload,
             updated_at: new Date().toISOString(),
           })
           .eq("id", supplierRow.id);
@@ -519,6 +693,8 @@ export async function POST(request: NextRequest) {
               phone: activation.phone,
               activationId: activation.activation_id,
               expiresAt: String(activation.expires_at || ""),
+              actualProviderPrice,
+              providerPriceDrift,
             },
           })
           .eq("order_id", created.order_id);
@@ -528,6 +704,15 @@ export async function POST(request: NextRequest) {
           p_status: "accepted",
           p_error: null,
         });
+
+        if (actualProviderPrice > price) {
+          console.warn("[nokos] provider price melebihi harga yang dibayar customer", {
+            orderCode: created.order_code,
+            quotedProviderPrice,
+            actualProviderPrice,
+            chargedSellingPrice: price,
+          });
+        }
 
         return jsonResponse(
           {
@@ -543,21 +728,93 @@ export async function POST(request: NextRequest) {
           201
         );
       } catch (supplierError) {
-        const supplierMessage = supplierError instanceof Error ? supplierError.message : "Nomor gagal diterbitkan.";
+        const supplierMessage =
+          supplierError instanceof Error
+            ? supplierError.message
+            : "Nomor gagal diterbitkan.";
+
+        if (isAmbiguousNokosError(supplierError)) {
+          const reviewMessage =
+            "Provider NOKOS belum memberi hasil final. Sistem akan mencoba rekonsiliasi ulang memakai request yang sama. Jangan membuat order ulang sampai status ini selesai.";
+          const reviewRequestPayload = {
+            ...requestPayload,
+            reconciliationRequired: true,
+            reviewMessage,
+          };
+          const updatedAt = new Date().toISOString();
+
+          const { error: reviewSupplierError } = await admin
+            .from("supplier_orders")
+            .update({
+              status: "processing",
+              error_message: supplierMessage,
+              request_payload: reviewRequestPayload,
+              response_payload: {
+                error: supplierMessage,
+                reconciliationRequired: true,
+                manualReviewRequired: false,
+                reviewMessage,
+                providerIdempotencyKey,
+                reconcileAttempts: 0,
+              },
+              updated_at: updatedAt,
+            })
+            .eq("id", supplierRow.id);
+
+          if (reviewSupplierError) {
+            console.error("[nokos] gagal menandai supplier order untuk rekonsiliasi", {
+              orderCode: created.order_code,
+              error: reviewSupplierError.message,
+            });
+          }
+
+          const { error: reviewItemError } = await admin
+            .from("order_items")
+            .update({ input_data: reviewRequestPayload })
+            .eq("order_id", created.order_id);
+
+          if (reviewItemError) {
+            console.error("[nokos] gagal menyimpan status rekonsiliasi ke order item", {
+              orderCode: created.order_code,
+              error: reviewItemError.message,
+            });
+          }
+
+          return jsonResponse(
+            {
+              ok: true,
+              code: "NOKOS_RECONCILING",
+              orderId: created.order_code,
+              createdAt: created.created_at,
+              status: "pending",
+              paymentMethod,
+              newBalance,
+              message: `Order ${created.order_code} sedang diverifikasi ke provider. Jangan order ulang; saldo tidak dipotong lagi selama rekonsiliasi.`,
+            },
+            202
+          );
+        }
+
         await admin
           .from("supplier_orders")
           .update({
             status: "failed",
             error_message: supplierMessage,
-            response_payload: { error: supplierMessage },
+            response_payload: {
+              error: supplierMessage,
+              reconciliationRequired: false,
+            },
             updated_at: new Date().toISOString(),
           })
           .eq("id", supplierRow.id);
 
-        const { data: refundData, error: refundError } = await admin.rpc("refund_order_to_wallet", {
-          p_order_id: created.order_id,
-          p_reason: `${supplierMessage} Saldo dikembalikan otomatis.`,
-        });
+        const { data: refundData, error: refundError } = await admin.rpc(
+          "refund_order_to_wallet",
+          {
+            p_order_id: created.order_id,
+            p_reason: `${supplierMessage} Saldo dikembalikan otomatis.`,
+          },
+        );
         if (refundError) throw refundError;
         const refund = Array.isArray(refundData) ? refundData[0] : refundData;
 
