@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import NokosBuyButton from "@/components/products/NokosBuyButton";
 
-type ServerMode = "auto" | "s1" | "s2";
+type ServerMode = "s1" | "s2";
 type CatalogMode = "country" | "cheapest";
 type CountrySort = "popular" | "price" | "stock" | "name";
 type CheapestSort = "price" | "stock" | "name";
@@ -273,15 +273,13 @@ function operatorLabel(value: string) {
 }
 
 function serverLabel(server: ServerMode) {
-  if (server === "auto") return "Otomatis Termurah";
   return server === "s1" ? "Server Express" : "Server Plus";
 }
 
 function serverDescription(server: ServerMode) {
-  if (server === "auto") return "Bandingkan Plus & Express per layanan";
   return server === "s1"
-    ? "Pilihan manual • Server Express"
-    : "Pilihan manual • Server Plus";
+    ? "Harga & stok API • Server Express"
+    : "Harga & stok API • Server Plus";
 }
 
 function serviceRank(service: Service) {
@@ -305,7 +303,7 @@ function serviceRank(service: Service) {
 
 export default function NokosCatalog() {
   const [mode, setMode] = useState<CatalogMode>("country");
-  const [server, setServer] = useState<ServerMode>("auto");
+  const [server, setServer] = useState<ServerMode>("s2");
   const [countries, setCountries] = useState<Country[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [country, setCountry] = useState(6);
@@ -978,7 +976,17 @@ export default function NokosCatalog() {
                     </div>
                   </div>
 
-                  <p className="mt-3 text-sm font-black text-brand-500">{formatRupiah(product.price)}</p>
+                  <div className="mt-3">
+                    <div>
+                      <p className="text-sm font-black text-brand-500">{formatRupiah(product.price)}</p>
+                      <p className="mt-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-500">
+                        Harga API • {product.nokosServer === "s1" ? "Express" : "Plus"}
+                      </p>
+                    </div>
+                    <p className="mt-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-500">
+                      Harga API • {product.nokosServer === "s1" ? "Express" : "Plus"}
+                    </p>
+                  </div>
                   <NokosBuyButton
                     compact
                     productId={product.id}
@@ -1088,19 +1096,11 @@ export default function NokosCatalog() {
             </div>
 
             <div className="mt-4 rounded-2xl border border-brand-500/15 bg-brand-500/[0.05] p-3 text-[10px] leading-5 text-gray-400">
-              Mode Otomatis membandingkan harga dan stok live Server Plus + Express untuk setiap layanan. Server termurah yang masih punya stok dipakai sampai checkout, jadi customer tidak perlu memilih manual.
+              Pilih Server Plus atau Server Express. Harga dan stok diambil dari API provider untuk server yang dipilih. Saat checkout harga dan stok diperiksa ulang sebelum saldo dipotong.
             </div>
 
             <div className="mt-3 space-y-3">
               {([
-                {
-                  value: "auto" as ServerMode,
-                  name: "Otomatis Termurah",
-                  badge: "DIREKOMENDASIKAN",
-                  description: "Bandingkan Server Plus + Express",
-                  detail: "Setiap layanan otomatis memakai server dengan harga provider paling murah yang stoknya tersedia. Jika harga sama, dipilih stok yang lebih banyak.",
-                  icon: "✦",
-                },
                 {
                   value: "s2" as ServerMode,
                   name: "Server Plus",
