@@ -49,96 +49,15 @@ export async function GET(request: NextRequest) {
 
   try {
     if (all) {
-      const search = String(params.get("search") || "").trim().slice(0, 100);
-
-      const first = await getNokosCatalog({
-        country,
-        server,
-        search,
-        page: 1,
-        limit: 60,
-        sort: "name",
-      });
-
-      const products = [...first.products];
-
-      for (let page = 2; page <= first.totalPages; page += 1) {
-        const next = await getNokosCatalog({
-          country,
-          server,
-          search,
-          page,
-          limit: 60,
-          sort: "name",
-        });
-        products.push(...next.products);
-      }
-
-      const markupPercent = Math.max(
-        0,
-        Number(process.env.NOKOS_MARKUP_PERCENT || 0) || 0,
-      );
-      const markupFlat = Math.max(
-        0,
-        Number(process.env.NOKOS_MARKUP_FLAT || 0) || 0,
-      );
-
-      const rows = products.map((product) => {
-        const providerPrice = Math.max(
-          0,
-          Math.round(Number(product.providerRate || 0)),
-        );
-        const sellingPrice = Math.max(
-          0,
-          Math.round(Number(product.price || 0)),
-        );
-
-        return {
-          service: {
-            code: String(
-              product.nokosServiceCode || product.supplierProductId || "",
-            ),
-            name: String(product.name || "").replace(
-              new RegExp(`\\s*-\\s*${first.country.name}\\s*$`, "i"),
-              "",
-            ),
-          },
-          selectedServer:
-            product.nokosServer === "s1" ? "s1" : "s2",
-          providerPrice,
-          markupPercent,
-          markupFlat,
-          percentageMarkupAmount: Math.ceil(
-            providerPrice * (markupPercent / 100),
-          ),
-          profit: Math.max(0, sellingPrice - providerPrice),
-          sellingPrice,
-          stock: Math.max(0, Math.trunc(Number(product.stock || 0))),
-          safeToSell:
-            providerPrice > 0 && Math.trunc(Number(product.stock || 0)) > 0,
-        };
-      });
-
-      const totalStock = rows.reduce((sum, row) => sum + row.stock, 0);
-
-      return noStore({
-        ok: true,
-        configured: true,
-        checkedAt: new Date().toISOString(),
-        mode: "all-services",
-        country: {
-          id: first.country.id,
-          name: first.country.name,
-          prefix: first.country.prefix || "",
+      return noStore(
+        {
+          ok: false,
+          code: "BULK_EXACT_PRICE_CHECK_DISABLED",
+          error:
+            "Bulk exact price-check dinonaktifkan agar tidak melampaui rate limit provider. Gunakan pengecekan per layanan; katalog customer memverifikasi harga live hanya untuk kartu yang sedang ditampilkan.",
         },
-        server,
-        markupPercent,
-        markupFlat,
-        totalServices: rows.length,
-        totalStock,
-        search: search || null,
-        products: rows,
-      });
+        422,
+      );
     }
 
     if (!service) {
@@ -162,7 +81,6 @@ export async function GET(request: NextRequest) {
     return noStore({
       ok: true,
       configured: true,
-      checkedAt: new Date().toISOString(),
       mode: "single-service",
       ...check,
     });

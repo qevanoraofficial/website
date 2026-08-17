@@ -978,7 +978,12 @@ export default function NokosCatalog() {
                     </div>
                   </div>
 
-                  <p className="mt-3 text-sm font-black text-brand-500">{formatRupiah(product.price)}</p>
+                  <p className="mt-3 text-sm font-black text-brand-500">
+                    {formatRupiah(product.price)}
+                    <span className="ml-2 align-middle text-[9px] font-black tracking-wide text-emerald-500">
+                      LIVE API
+                    </span>
+                  </p>
                   <NokosBuyButton
                     compact
                     productId={product.id}
@@ -1030,7 +1035,12 @@ export default function NokosCatalog() {
                   </div>
 
                   <div className="mt-2 flex items-end justify-between gap-3">
-                    <p className="text-sm font-black text-brand-500">{formatRupiah(product.price)}</p>
+                    <p className="text-sm font-black text-brand-500">
+                      {formatRupiah(product.price)}
+                      <span className="ml-2 align-middle text-[9px] font-black tracking-wide text-emerald-500">
+                        LIVE API
+                      </span>
+                    </p>
                     <div className="w-[132px] max-w-[48%]">
                       <NokosBuyButton
                         compact
