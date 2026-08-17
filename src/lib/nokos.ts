@@ -28,10 +28,8 @@ type NokosApiEnvelope<T> = {
 
 export type NokosActivation = {
   activation_id: string | number;
-  phone?: string;
-  phone_number?: string;
+  phone: string;
   price?: string | number;
-  cost?: string | number;
   expires_at?: string;
   [key: string]: unknown;
 };
@@ -60,13 +58,6 @@ type CachedReference = {
 let referenceCache: CachedReference | null = null;
 const priceCache = new Map<string, { expiresAt: number; data: Record<string, NokosPriceEntry> }>();
 const servicePriceCache = new Map<string, { expiresAt: number; data: Record<number, NokosPriceEntry> }>();
-const liveAvailabilityCache = new Map<
-  string,
-  {
-    expiresAt: number;
-    data: { available?: string | number; price?: string | number };
-  }
->();
 
 const TRANSIENT_NOKOS_HTTP = new Set([408, 425, 429, 500, 502, 503, 504]);
 
@@ -142,7 +133,8 @@ function int(value: unknown, fallback = 0) {
  */
 function nokosPriceRupiah(value: unknown) {
   const parsed = num(value, 0);
-  if (!Number.isFinite(parsed) || parsed < 1) return 0;
+  if (parsed <= 0) return 0;
+  if (parsed < 100) return Math.max(1, Math.round(parsed * 1000));
   return Math.round(parsed);
 }
 
@@ -361,16 +353,6 @@ async function nokosRequest<T>(
       return payload[key] as T;
     }
 
-    // Production/legacy NOKOS may return getNumber fields at top-level.
-    // Example: { success:true, activation_id, phone_number, cost, expires_at }.
-    if (
-      action === "getNumber" &&
-      payload.activation_id !== undefined &&
-      (payload.phone !== undefined || payload.phone_number !== undefined)
-    ) {
-      return payload as T;
-    }
-
     // Jika respons bukan envelope resmi tetapi berupa object data langsung, tetap terima.
     const isEnvelopeLike =
       "success" in payload || "error" in payload || "message" in payload || "data" in payload;
@@ -453,114 +435,8 @@ async function getPriceMap(
   return result;
 }
 
-async function getLiveNokosAvailability(
-  service: string,
-  country: number,
-  server: "s1" | "s2",
-  options?: { force?: boolean },
-) {
-  const cacheKey = `${service}:${country}:${server}`;
-  const cached = options?.force ? null : liveAvailabilityCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) return cached.data;
-
-  const data = await nokosRequest<{
-    available?: string | number;
-    price?: string | number;
-  }>("getAvailability", {
-    query: { service, country, server },
-  });
-
-  const price = nokosPriceRupiah(data.price);
-  const available = Math.max(0, int(data.available));
-
-  if (price <= 0) {
-    throw new NokosProviderError(
-      `Nokos getAvailability tidak memberi harga Rupiah valid untuk ${service}/${country}/${server}.`,
-      { action: "getAvailability", status: 200 },
-    );
-  }
-
-  const normalized = { ...data, price, available };
-  liveAvailabilityCache.set(cacheKey, {
-    expiresAt: Date.now() + 20_000,
-    data: normalized,
-  });
-  return normalized;
-}
-
 type NokosServerMode = "auto" | "s1" | "s2";
 type NokosConcreteServer = "s1" | "s2";
-
-export async function getNokosLiveQuote(input: {
-  service: string;
-  country: number;
-  server: NokosServerMode;
-  force?: boolean;
-}) {
-  const service = String(input.service || "").trim();
-  const country = Math.trunc(Number(input.country));
-  if (!service || !Number.isInteger(country) || country < 0) {
-    throw new Error("Parameter quote NOKOS tidak valid.");
-  }
-
-  const servers: NokosConcreteServer[] =
-    input.server === "auto"
-      ? ["s1", "s2"]
-      : [input.server === "s1" ? "s1" : "s2"];
-
-  const quotes = (
-    await Promise.all(
-      servers.map(async (server) => {
-        try {
-          const availability = await getLiveNokosAvailability(
-            service,
-            country,
-            server,
-            { force: Boolean(input.force) },
-          );
-          const providerPrice = nokosPriceRupiah(availability.price);
-          const stock = Math.max(0, int(availability.available));
-          if (providerPrice <= 0 || stock <= 0) return null;
-          return {
-            server,
-            providerPrice,
-            sellingPrice: sellingPrice(providerPrice),
-            stock,
-          };
-        } catch {
-          return null;
-        }
-      }),
-    )
-  ).filter(
-    (
-      item,
-    ): item is {
-      server: NokosConcreteServer;
-      providerPrice: number;
-      sellingPrice: number;
-      stock: number;
-    } => Boolean(item),
-  );
-
-  quotes.sort(
-    (a, b) =>
-      a.providerPrice - b.providerPrice ||
-      b.stock - a.stock ||
-      (a.server === "s2" ? -1 : 1),
-  );
-
-  const best = quotes[0];
-  if (!best) {
-    throw new Error("Harga/stok live provider sedang tidak tersedia.");
-  }
-
-  return {
-    ...best,
-    source: "getAvailability" as const,
-    checkedAt: new Date().toISOString(),
-  };
-}
 
 type NokosServerPriceChoice = {
   server: NokosConcreteServer;
@@ -623,66 +499,89 @@ export async function getNokosPriceCheck(options: {
   const requestedServer: NokosServerMode =
     options.server === "s1" ? "s1" : options.server === "s2" ? "s2" : "auto";
 
-  const servers: NokosConcreteServer[] =
-    requestedServer === "auto" ? ["s1", "s2"] : [requestedServer];
+  const [s1Map, s2Map] = await Promise.all([
+    requestedServer === "s2"
+      ? Promise.resolve({} as Record<string, NokosPriceEntry>)
+      : getPriceMap(country.id, "s1"),
+    requestedServer === "s1"
+      ? Promise.resolve({} as Record<string, NokosPriceEntry>)
+      : getPriceMap(country.id, "s2"),
+  ]);
 
-  const quotes = (
-    await Promise.all(
-      servers.map(async (server) => {
-        try {
-          const availability = await getLiveNokosAvailability(
-            service.code,
-            country.id,
-            server,
-            { force: true },
-          );
-          const providerPrice = nokosPriceRupiah(availability.price);
-          const stock = Math.max(0, int(availability.available));
-          if (providerPrice <= 0 || stock <= 0) return null;
-          return { server, providerPrice, stock };
-        } catch {
-          return null;
-        }
-      }),
-    )
-  ).filter(
-    (item): item is { server: NokosConcreteServer; providerPrice: number; stock: number } =>
-      Boolean(item),
+  const best = chooseBestServerPrice(
+    requestedServer === "s2" ? undefined : s1Map[service.code],
+    requestedServer === "s1" ? undefined : s2Map[service.code],
   );
 
-  quotes.sort(
-    (a, b) =>
-      a.providerPrice - b.providerPrice ||
-      b.stock - a.stock ||
-      (a.server === "s2" ? -1 : 1),
-  );
+  const server: NokosConcreteServer =
+    best?.server || (requestedServer === "s1" ? "s1" : "s2");
+  const selectedEntry = server === "s1" ? s1Map[service.code] : s2Map[service.code];
 
-  const best = quotes[0];
-  if (!best) {
-    throw new Error(
-      `Harga/stok live provider untuk ${service.name} - ${country.name} tidak tersedia. Produk tidak aman dijual saat ini.`,
-    );
+  let availability: { available?: string | number; price?: string | number } = {};
+  try {
+    availability = await nokosRequest<{
+      available?: string | number;
+      price?: string | number;
+    }>("getAvailability", {
+      query: { service: service.code, country: country.id, server },
+    });
+  } catch {
+    // getPrices tetap sumber utama; availability hanya diagnostik/fallback.
+  }
+
+  const rawCatalogCost = num(selectedEntry?.cost, 0);
+  const rawAvailabilityPrice = num(availability.price, 0);
+  const catalogProviderPrice = best?.providerPrice || nokosPriceRupiah(selectedEntry?.cost);
+  const checkoutProviderPrice = nokosPriceRupiah(availability.price);
+  const providerPrice = catalogProviderPrice || checkoutProviderPrice;
+  const stockCatalog = best?.stock || Math.max(0, int(selectedEntry?.count));
+  const stockAvailability = Math.max(0, int(availability.available));
+
+  if (providerPrice <= 0) {
+    throw new Error(`Harga provider untuk ${service.name} - ${country.name} belum tersedia.`);
   }
 
   const markupPercent = Math.max(0, num(process.env.NOKOS_MARKUP_PERCENT, 0));
   const markupFlat = Math.max(0, num(process.env.NOKOS_MARKUP_FLAT, 0));
-  const selling = sellingPrice(best.providerPrice);
+  const selling = sellingPrice(providerPrice);
 
   return {
     service: { code: service.code, name: service.name },
     country: { id: country.id, name: country.name, prefix: country.prefix || "" },
     requestedServer,
-    server: best.server,
-    source: "getAvailability",
-    checkedAt: new Date().toISOString(),
-    providerPrice: best.providerPrice,
-    stock: best.stock,
+    server,
+    source: {
+      getPrices: {
+        rawCost: rawCatalogCost,
+        normalizedPrice: catalogProviderPrice,
+        stock: stockCatalog,
+      },
+      getAvailability: {
+        rawPrice: rawAvailabilityPrice,
+        normalizedPrice: checkoutProviderPrice,
+        stock: stockAvailability,
+      },
+    },
+    effectiveSource:
+      catalogProviderPrice > 0 && stockCatalog > 0 ? "getPrices" : "getAvailability",
+    availabilityHealthy: checkoutProviderPrice > 0 && stockAvailability > 0,
+    safeToSell: providerPrice > 0 && (stockCatalog > 0 || stockAvailability > 0),
+    consistent: {
+      price:
+        checkoutProviderPrice > 0
+          ? catalogProviderPrice > 0 && catalogProviderPrice === checkoutProviderPrice
+          : null,
+      stock:
+        stockAvailability > 0
+          ? stockCatalog > 0 && stockCatalog === stockAvailability
+          : null,
+    },
+    providerPrice,
     markupPercent,
     markupFlat,
-    percentageMarkupAmount: Math.ceil(best.providerPrice * (markupPercent / 100)),
-    profit: Math.max(0, selling - best.providerPrice),
+    percentageMarkupAmount: Math.ceil(providerPrice * (markupPercent / 100)),
+    profit: Math.max(0, selling - providerPrice),
     sellingPrice: selling,
-    safeToSell: best.providerPrice > 0 && best.stock > 0,
   };
 }
 
@@ -865,55 +764,6 @@ async function getServicePriceMap(
   return result;
 }
 
-async function refreshVisibleNokosProducts(
-  products: Product[],
-  serverMode: NokosServerMode,
-) {
-  const refreshed: Product[] = [];
-
-  for (let index = 0; index < products.length; index += 3) {
-    const batch = products.slice(index, index + 3);
-
-    const results = await Promise.all(
-      batch.map(async (product) => {
-        const parsed = parseNokosProductId(product.id);
-        if (!parsed) return null;
-
-        if (serverMode !== "auto") {
-          return getNokosProduct(
-            makeProductId(parsed.service, parsed.country, serverMode),
-          ).catch(() => null);
-        }
-
-        const [s1, s2] = await Promise.all([
-          getNokosProduct(makeProductId(parsed.service, parsed.country, "s1")).catch(
-            () => null,
-          ),
-          getNokosProduct(makeProductId(parsed.service, parsed.country, "s2")).catch(
-            () => null,
-          ),
-        ]);
-
-        const candidates = [s1, s2].filter((item): item is Product => Boolean(item));
-        candidates.sort(
-          (a, b) =>
-            Number(a.providerRate || Number.MAX_SAFE_INTEGER) -
-              Number(b.providerRate || Number.MAX_SAFE_INTEGER) ||
-            b.stock - a.stock ||
-            (a.nokosServer === "s2" ? -1 : 1),
-        );
-        return candidates[0] || null;
-      }),
-    );
-
-    for (const product of results) {
-      if (product) refreshed.push(product);
-    }
-  }
-
-  return refreshed;
-}
-
 export async function getNokosCatalog(options?: {
   country?: number;
   server?: NokosServerMode;
@@ -954,41 +804,39 @@ export async function getNokosCatalog(options?: {
   for (const service of services) {
     if (search && !`${service.name} ${service.code}`.toLowerCase().includes(search)) continue;
 
-    const discovery = chooseBestServerPrice(
+    const best = chooseBestServerPrice(
       server === "s2" ? undefined : s1Map[service.code],
       server === "s1" ? undefined : s2Map[service.code],
     );
-    if (!discovery) continue;
+    if (!best) continue;
 
-    rows.push({
-      product: choiceToProduct({
-        service,
-        country,
-        server: discovery.server,
-        providerPrice: discovery.providerPrice,
-        stock: discovery.stock,
-      }),
+    const product = choiceToProduct({
       service,
+      country,
+      server: best.server,
+      providerPrice: best.providerPrice,
+      stock: best.stock,
     });
+
+    if (minStock > 0 && best.stock < minStock) continue;
+    if (maxPrice > 0 && product.price > maxPrice) continue;
+    rows.push({ product, service });
   }
 
   sortCatalogRows(rows, sort);
 
   const page = Math.max(1, int(options?.page, 1));
-  const limit = Math.min(12, Math.max(6, int(options?.limit, 12)));
+  const limit = Math.min(60, Math.max(12, int(options?.limit, 24)));
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * limit;
 
-  const pageProducts = rows.slice(start, start + limit).map((item) => item.product);
-
   return {
-    products: pageProducts,
+    products: rows.slice(start, start + limit).map((item) => item.product),
     countries,
     country,
     server,
-    priceSource: "client-live-quote",
     total,
     page: currentPage,
     totalPages,
@@ -1038,21 +886,22 @@ export async function getNokosCheapestCatalog(options: {
   for (const country of countries) {
     if (!countryMatchesRegion(country, region)) continue;
 
-    const discovery = chooseBestServerPrice(
+    const best = chooseBestServerPrice(
       server === "s2" ? undefined : s1Map[country.id],
       server === "s1" ? undefined : s2Map[country.id],
     );
-    if (!discovery) continue;
+    if (!best) continue;
 
-    rows.push(
-      choiceToProduct({
-        service,
-        country,
-        server: discovery.server,
-        providerPrice: discovery.providerPrice,
-        stock: discovery.stock,
-      }),
-    );
+    const product = choiceToProduct({
+      service,
+      country,
+      server: best.server,
+      providerPrice: best.providerPrice,
+      stock: best.stock,
+    });
+    if (minStock > 0 && best.stock < minStock) continue;
+    if (maxPrice > 0 && product.price > maxPrice) continue;
+    rows.push(product);
   }
 
   if (sort === "stock") {
@@ -1069,20 +918,17 @@ export async function getNokosCheapestCatalog(options: {
   }
 
   const page = Math.max(1, int(options.page, 1));
-  const limit = Math.min(12, Math.max(6, int(options.limit, 12)));
+  const limit = Math.min(60, Math.max(12, int(options.limit, 24)));
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * limit;
 
-  const pageProducts = rows.slice(start, start + limit);
-
   return {
-    products: pageProducts,
+    products: rows.slice(start, start + limit),
     countries,
     service,
     server,
-    priceSource: "client-live-quote",
     total,
     page: currentPage,
     totalPages,
@@ -1095,35 +941,37 @@ export async function getNokosProduct(
 ): Promise<Product | null> {
   const parsed = parseNokosProductId(productId);
   if (!parsed) return null;
-
   const { services, countries } = await getNokosReference();
   const service = services.find((item) => item.code === parsed.service);
   const country = countries.find((item) => item.id === parsed.country);
   if (!service || !country) return null;
 
-  let availability: { available?: string | number; price?: string | number };
-  try {
-    availability = await getLiveNokosAvailability(
-      parsed.service,
-      parsed.country,
-      parsed.server,
-      { force: Boolean(options?.force) },
-    );
-  } catch {
-    return null;
+  // getPrices adalah sumber harga/stok utama yang dipakai katalog dan terbukti
+  // mengembalikan data live pada production QEVANORA. getAvailability tetap
+  // dicoba sebagai fallback karena endpoint itu kadang mengembalikan 0/0.
+  const priceMap = await getPriceMap(parsed.country, parsed.server, {
+    force: options?.force,
+  });
+  const priceEntry = priceMap[parsed.service];
+  let providerPrice = nokosPriceRupiah(priceEntry?.cost);
+  let stock = Math.max(0, int(priceEntry?.count));
+
+  if (providerPrice <= 0 || stock <= 0) {
+    try {
+      const availability = await nokosRequest<{ available?: string | number; price?: string | number }>("getAvailability", {
+        query: { service: parsed.service, country: parsed.country, server: parsed.server },
+      });
+      const fallbackPrice = nokosPriceRupiah(availability.price);
+      const fallbackStock = Math.max(0, int(availability.available));
+      if (fallbackPrice > 0) providerPrice = fallbackPrice;
+      if (fallbackStock > 0) stock = fallbackStock;
+    } catch {
+      // getPrices tetap menjadi sumber utama; kegagalan fallback tidak membatalkan checkout.
+    }
   }
 
-  const providerPrice = nokosPriceRupiah(availability.price);
-  const stock = Math.max(0, int(availability.available));
-
   if (providerPrice <= 0 || stock <= 0) return null;
-  return choiceToProduct({
-    service,
-    country,
-    server: parsed.server,
-    providerPrice,
-    stock,
-  });
+  return choiceToProduct({ service, country, server: parsed.server, providerPrice, stock });
 }
 
 export async function createNokosActivation(input: {
@@ -1145,7 +993,7 @@ export async function createNokosActivation(input: {
   });
 
   const activationId = String(data.activation_id || "").trim();
-  const phone = String(data.phone || data.phone_number || "").trim();
+  const phone = String(data.phone || "").trim();
   if (!activationId || !phone) {
     throw new NokosProviderError(
       "Nokos getNumber merespons tetapi activation_id/phone tidak valid.",
@@ -1153,7 +1001,9 @@ export async function createNokosActivation(input: {
     );
   }
 
-  const activationPrice = nokosPriceRupiah(data.price ?? data.cost);
+  // Samakan unit harga pada response getNumber dengan katalog (Rupiah).
+  // Contoh payload live 0.24 harus dicatat sebagai Rp240, bukan dibulatkan Rp0.
+  const activationPrice = nokosPriceRupiah(data.price);
   return {
     ...data,
     activation_id: activationId,
