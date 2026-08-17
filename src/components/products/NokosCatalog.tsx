@@ -530,7 +530,9 @@ export default function NokosCatalog() {
         ? payload.products
         : [];
 
-      const quotedProducts = await hydrateLiveQuotes(candidates, server);
+      // /api/nokos/catalog sudah membawa harga + stok live dari bulk getPrices.
+      // Jangan panggil getAvailability satu-per-satu untuk setiap produk.
+      const quotedProducts = candidates;
       if (catalogRequestRef.current !== requestId) return;
 
       let nextProducts = quotedProducts.filter((product) => {
