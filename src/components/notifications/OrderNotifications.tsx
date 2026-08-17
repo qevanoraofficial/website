@@ -27,6 +27,9 @@ type UserOrder = {
   expiresAt?: string;
   canCancel?: boolean;
   premiumCredentials?: string;
+  reviewRequired?: boolean;
+  manualReviewRequired?: boolean;
+  reviewMessage?: string;
 };
 
 const statusPresentation: Record<
@@ -271,6 +274,9 @@ export default function OrderNotifications() {
         const message =
           order.status === "failed" && order.error
             ? order.error
+            : isNokos && order.reviewRequired
+              ? order.reviewMessage ||
+                "Provider belum memberi hasil final. Order sedang diverifikasi; jangan membuat order ulang."
             : isPremiumApps && order.status === "accepted"
               ? "Pembayaran berhasil. Sistem sedang menunggu data akun Premium Apps dari supplier."
               : isPremiumApps && order.status === "completed"

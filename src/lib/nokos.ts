@@ -59,6 +59,50 @@ let referenceCache: CachedReference | null = null;
 const priceCache = new Map<string, { expiresAt: number; data: Record<string, NokosPriceEntry> }>();
 const servicePriceCache = new Map<string, { expiresAt: number; data: Record<number, NokosPriceEntry> }>();
 
+const TRANSIENT_NOKOS_HTTP = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+export class NokosProviderError extends Error {
+  action: string;
+  status: number | null;
+  ambiguous: boolean;
+
+  constructor(
+    message: string,
+    options?: { action?: string; status?: number | null; ambiguous?: boolean },
+  ) {
+    super(message);
+    this.name = "NokosProviderError";
+    this.action = String(options?.action || "");
+    const parsedStatus =
+      options?.status === null || options?.status === undefined
+        ? null
+        : Number(options.status);
+    this.status =
+      parsedStatus !== null && Number.isFinite(parsedStatus) ? parsedStatus : null;
+    this.ambiguous = Boolean(options?.ambiguous);
+  }
+
+  get transient() {
+    return (
+      (this.status !== null && TRANSIENT_NOKOS_HTTP.has(this.status)) ||
+      /timeout|timed out|network|fetch failed|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|socket|aborted/i.test(
+        this.message,
+      )
+    );
+  }
+}
+
+export function isAmbiguousNokosError(error: unknown) {
+  if (error instanceof NokosProviderError) {
+    return error.ambiguous || error.transient;
+  }
+
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /timeout|timed out|network|fetch failed|ECONNRESET|ECONNREFUSED|EAI_AGAIN|ENOTFOUND|socket|aborted|Permintaan terlalu cepat|respons non-JSON|JSON tanpa data|format respons yang tidak dikenali|HTTP (?:408|425|429|5\d\d)/i.test(
+    message,
+  );
+}
+
 function baseUrl() {
   return String(process.env.NOKOS_API_URL || "https://nokos.co.id/api/").trim();
 }
@@ -230,19 +274,36 @@ async function nokosRequest<T>(
     headers["X-Idempotency-Key"] = options.idempotencyKey.slice(0, 100);
   }
 
-  const response = await fetch(url.toString(), {
-    method: options?.method || "GET",
-    headers,
-    body,
-    cache: "no-store",
-  });
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      method: options?.method || "GET",
+      headers,
+      body,
+      cache: "no-store",
+    });
+  } catch (cause) {
+    const causeMessage =
+      cause instanceof Error ? cause.message : String(cause || "network error");
+    throw new NokosProviderError(
+      `Nokos ${action} gagal terhubung ke provider: ${causeMessage}`,
+      { action, status: null, ambiguous: action === "getNumber" },
+    );
+  }
 
   const raw = await response.text();
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(`Nokos ${action} mengembalikan respons non-JSON (HTTP ${response.status}).`);
+    throw new NokosProviderError(
+      `Nokos ${action} mengembalikan respons non-JSON (HTTP ${response.status}).`,
+      {
+        action,
+        status: response.status,
+        ambiguous: action === "getNumber",
+      },
+    );
   }
 
   const payload =
@@ -254,7 +315,10 @@ async function nokosRequest<T>(
     const reason = sanitizeError(
       String(payload?.error || payload?.message || `HTTP ${response.status}`),
     );
-    throw new Error(`Nokos ${action} gagal (HTTP ${response.status}): ${reason}`);
+    throw new NokosProviderError(
+      `Nokos ${action} gagal (HTTP ${response.status}): ${reason}`,
+      { action, status: response.status },
+    );
   }
 
   // Format resmi Nokos: { success: true, data: ... }
@@ -295,14 +359,22 @@ async function nokosRequest<T>(
     if (!isEnvelopeLike) return payload as T;
 
     const keys = Object.keys(payload).filter((key) => key !== "data").slice(0, 8);
-    throw new Error(
+    throw new NokosProviderError(
       `Nokos ${action} mengembalikan JSON tanpa data (HTTP ${response.status}; keys: ${
         keys.join(",") || "none"
       }).`,
+      {
+        action,
+        status: response.status,
+        ambiguous: action === "getNumber",
+      },
     );
   }
 
-  throw new Error(`Nokos ${action} mengembalikan format respons yang tidak dikenali.`);
+  throw new NokosProviderError(
+    `Nokos ${action} mengembalikan format respons yang tidak dikenali.`,
+    { action, status: null, ambiguous: action === "getNumber" },
+  );
 }
 
 export function isNokosConfigured() {
@@ -338,9 +410,13 @@ export async function getNokosReference(options?: { force?: boolean }) {
   return referenceCache;
 }
 
-async function getPriceMap(country: number, server: "s1" | "s2"): Promise<Record<string, NokosPriceEntry>> {
+async function getPriceMap(
+  country: number,
+  server: "s1" | "s2",
+  options?: { force?: boolean },
+): Promise<Record<string, NokosPriceEntry>> {
   const cacheKey = `${country}:${server}`;
-  const cached = priceCache.get(cacheKey);
+  const cached = options?.force ? null : priceCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.data;
 
   const data = await nokosRequest<Record<string, Record<string, NokosPriceEntry> | NokosPriceEntry>>("getPrices", {
@@ -859,7 +935,10 @@ export async function getNokosCheapestCatalog(options: {
   };
 }
 
-export async function getNokosProduct(productId: string): Promise<Product | null> {
+export async function getNokosProduct(
+  productId: string,
+  options?: { force?: boolean },
+): Promise<Product | null> {
   const parsed = parseNokosProductId(productId);
   if (!parsed) return null;
   const { services, countries } = await getNokosReference();
@@ -870,7 +949,9 @@ export async function getNokosProduct(productId: string): Promise<Product | null
   // getPrices adalah sumber harga/stok utama yang dipakai katalog dan terbukti
   // mengembalikan data live pada production QEVANORA. getAvailability tetap
   // dicoba sebagai fallback karena endpoint itu kadang mengembalikan 0/0.
-  const priceMap = await getPriceMap(parsed.country, parsed.server);
+  const priceMap = await getPriceMap(parsed.country, parsed.server, {
+    force: options?.force,
+  });
   const priceEntry = priceMap[parsed.service];
   let providerPrice = nokosPriceRupiah(priceEntry?.cost);
   let stock = Math.max(0, int(priceEntry?.count));
@@ -913,7 +994,12 @@ export async function createNokosActivation(input: {
 
   const activationId = String(data.activation_id || "").trim();
   const phone = String(data.phone || "").trim();
-  if (!activationId || !phone) throw new Error("Nomor gagal diterbitkan. Saldo akan dikembalikan.");
+  if (!activationId || !phone) {
+    throw new NokosProviderError(
+      "Nokos getNumber merespons tetapi activation_id/phone tidak valid.",
+      { action: "getNumber", status: 200, ambiguous: true },
+    );
+  }
 
   // Samakan unit harga pada response getNumber dengan katalog (Rupiah).
   // Contoh payload live 0.24 harus dicatat sebagai Rp240, bukan dibulatkan Rp0.

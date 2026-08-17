@@ -53,6 +53,17 @@ export function mapOrderForCustomer(row: OrderRow) {
   const premiumCredentials = String(
     input.premiumCredentials || supplierPayload.credentials_text || "",
   ).slice(0, 6000);
+  const reviewRequired = Boolean(
+    input.reconciliationRequired || supplierPayload.reconciliationRequired,
+  );
+  const manualReviewRequired = Boolean(supplierPayload.manualReviewRequired);
+  const reviewMessage = String(
+    input.reviewMessage ||
+      supplierPayload.reviewMessage ||
+      (manualReviewRequired
+        ? "Provider belum memberi hasil final setelah beberapa percobaan otomatis. Order diamankan untuk pengecekan admin; jangan membuat order ulang."
+        : "Provider belum memberi hasil final. Sistem sedang merekonsiliasi order dengan request yang sama; jangan membuat order ulang."),
+  ).slice(0, 1000);
 
   return {
     id: row.order_code || row.id,
@@ -76,7 +87,15 @@ export function mapOrderForCustomer(row: OrderRow) {
     expiresAt,
     premiumCredentials,
     providerOrderId: String(input.providerOrderId || supplierRow?.supplier_order_id || ""),
-    canCancel: supplier === "nokos" && toLegacyStatus(row.status) === "accepted" && !otpCode && Boolean(activationId),
+    reviewRequired,
+    manualReviewRequired,
+    reviewMessage,
+    canCancel:
+      supplier === "nokos" &&
+      toLegacyStatus(row.status) === "accepted" &&
+      !otpCode &&
+      Boolean(activationId) &&
+      !reviewRequired,
   };
 }
 

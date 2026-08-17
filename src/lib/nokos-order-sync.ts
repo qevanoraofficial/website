@@ -1,6 +1,11 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { finishNokosActivation, getNokosActivationStatus } from "@/lib/nokos";
+import {
+  createNokosActivation,
+  finishNokosActivation,
+  getNokosActivationStatus,
+  isAmbiguousNokosError,
+} from "@/lib/nokos";
 
 type AdminClient = SupabaseClient;
 
@@ -33,8 +38,169 @@ async function refund(admin: AdminClient, order: OrderRow, reason: string) {
   });
 }
 
+async function reconcileMissingActivation(
+  admin: AdminClient,
+  supplier: SupplierRow,
+  order: OrderRow,
+) {
+  const request = supplier.request_payload || {};
+  const response = supplier.response_payload || {};
+
+  if (!request.reconciliationRequired && !response.reconciliationRequired) return;
+
+  const attempts = Math.max(
+    0,
+    Math.trunc(Number(response.reconcileAttempts || 0)),
+  );
+  if (attempts >= 3) return;
+
+  const service = String(request.service || "").trim();
+  const country = Number(request.country);
+  const server =
+    request.server === "s1" ? "s1" : request.server === "s2" ? "s2" : null;
+  const operator = String(request.operator || "any").trim() || "any";
+  const providerIdempotencyKey = String(
+    request.providerIdempotencyKey || response.providerIdempotencyKey || "",
+  ).trim();
+
+  if (
+    !service ||
+    !Number.isInteger(country) ||
+    country < 0 ||
+    !server ||
+    !providerIdempotencyKey
+  ) {
+    console.error("[nokos] data rekonsiliasi tidak lengkap", {
+      orderCode: order.order_code,
+      supplierId: supplier.id,
+    });
+    return;
+  }
+
+  const nextAttempt = attempts + 1;
+  const updatedAt = new Date().toISOString();
+
+  try {
+    const activation = await createNokosActivation({
+      service,
+      country,
+      server,
+      operator,
+      idempotencyKey: providerIdempotencyKey,
+    });
+
+    const actualProviderPrice = Math.max(
+      0,
+      Math.round(Number(activation.price || request.quotedProviderPrice || 0)),
+    );
+    const quotedProviderPrice = Math.max(
+      0,
+      Math.round(Number(request.quotedProviderPrice || 0)),
+    );
+    const providerPriceDrift =
+      actualProviderPrice > 0 && quotedProviderPrice > 0
+        ? actualProviderPrice - quotedProviderPrice
+        : 0;
+
+    const nextRequest = {
+      ...request,
+      reconciliationRequired: false,
+      reconciledAt: updatedAt,
+    };
+    const nextResponse = {
+      ...response,
+      ...activation,
+      reconciliationRequired: false,
+      manualReviewRequired: false,
+      reconcileAttempts: nextAttempt,
+      reconciledAt: updatedAt,
+      actual_provider_price: actualProviderPrice,
+      quoted_provider_price: quotedProviderPrice,
+      provider_price_drift: providerPriceDrift,
+    };
+
+    const { error: supplierError } = await admin
+      .from("supplier_orders")
+      .update({
+        supplier_order_id: activation.activation_id,
+        status: "processing",
+        cost_amount: actualProviderPrice,
+        request_payload: nextRequest,
+        response_payload: nextResponse,
+        error_message: null,
+        updated_at: updatedAt,
+      })
+      .eq("id", supplier.id);
+    if (supplierError) throw supplierError;
+
+    const { error: itemError } = await admin
+      .from("order_items")
+      .update({
+        input_data: {
+          ...nextRequest,
+          phone: activation.phone,
+          activationId: activation.activation_id,
+          expiresAt: String(activation.expires_at || ""),
+          actualProviderPrice,
+          providerPriceDrift,
+        },
+      })
+      .eq("order_id", order.id);
+    if (itemError) throw itemError;
+
+    if (order.status === "paid" || order.status === "pending_payment") {
+      await admin.rpc("service_set_order_status", {
+        p_order_ref: order.order_code,
+        p_status: "accepted",
+        p_error: null,
+      });
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Rekonsiliasi NOKOS gagal.";
+    const ambiguous = isAmbiguousNokosError(error);
+    const manualReviewRequired = ambiguous && nextAttempt >= 3;
+
+    const { error: updateError } = await admin
+      .from("supplier_orders")
+      .update({
+        status: ambiguous ? "processing" : "failed",
+        error_message: message,
+        request_payload: {
+          ...request,
+          reconciliationRequired: ambiguous,
+        },
+        response_payload: {
+          ...response,
+          error: message,
+          reconciliationRequired: ambiguous,
+          manualReviewRequired,
+          reconcileAttempts: nextAttempt,
+          lastReconcileAt: updatedAt,
+        },
+        updated_at: updatedAt,
+      })
+      .eq("id", supplier.id);
+
+    if (updateError) {
+      console.error("[nokos] gagal menyimpan hasil rekonsiliasi", updateError);
+    }
+
+    if (!ambiguous) {
+      await refund(
+        admin,
+        order,
+        `${message} Provider memastikan aktivasi gagal. Saldo dikembalikan otomatis.`,
+      );
+    }
+  }
+}
+
 async function syncOne(admin: AdminClient, supplier: SupplierRow, order: OrderRow) {
-  if (!supplier.supplier_order_id) return;
+  if (!supplier.supplier_order_id) {
+    await reconcileMissingActivation(admin, supplier, order);
+    return;
+  }
   const data = await getNokosActivationStatus(supplier.supplier_order_id);
   const status = String(data.status || "").trim().toUpperCase();
   const mergedPayload = { ...(supplier.response_payload || {}), ...data };
