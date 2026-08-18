@@ -75,5 +75,12 @@
     "guests": 11,
     "members": 3,
     "updatedAt": "2026-08-17T16:38:01.845Z"
+  },
+  {
+    "date": "2026-08-18",
+    "visitors": 1,
+    "guests": 0,
+    "members": 1,
+    "updatedAt": "2026-08-18T07:20:27.880Z"
   }
 ]
