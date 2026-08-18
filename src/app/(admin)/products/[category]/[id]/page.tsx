@@ -69,6 +69,11 @@ export async function generateMetadata({
   params,
 }: ProductDetailPageProps): Promise<Metadata> {
   const { category, id } = await params;
+
+  if (category === "premium-apps" || category === "followers-sosmed") {
+    notFound();
+  }
+
   const product = await resolveProduct(category, id);
 
   if (!product) {

@@ -73,7 +73,13 @@ export default function AppSidebar() {
           return;
         }
 
-        setCategories(getProductCategories(payload.products));
+        setCategories(
+          getProductCategories(payload.products).filter(
+            (category) =>
+              category.slug !== "premium-apps" &&
+              category.slug !== "followers-sosmed",
+          ),
+        );
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           console.error("Kategori produk gagal dibaca.", error);

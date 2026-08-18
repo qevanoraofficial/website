@@ -43,6 +43,11 @@ export default async function ProductCategoryPage({
   params,
 }: CategoryPageProps) {
   const { category } = await params;
+
+  if (category === "premium-apps" || category === "followers-sosmed") {
+    notFound();
+  }
+
   const allProducts = await getProducts();
   const categoryData = getProductCategories(allProducts).find(
     (item) => item.slug === category,
