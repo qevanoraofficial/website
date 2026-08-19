@@ -136,9 +136,11 @@ export default function SMSCodeCatalog() {
         }
         const nextCountries = payload.countries || [];
         setCountries(nextCountries);
-        if (!nextCountries.some((country) => country.code === countryCode)) {
-          setCountryCode(nextCountries[0]?.code || "ID");
-        }
+        setCountryCode((current) =>
+          nextCountries.some((country) => country.code === current)
+            ? current
+            : nextCountries[0]?.code || "ID",
+        );
       } catch (caught) {
         if (caught instanceof Error && caught.name === "AbortError") return;
         setError(caught instanceof Error ? caught.message : "Daftar negara gagal dimuat.");
