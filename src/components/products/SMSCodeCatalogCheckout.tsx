@@ -185,8 +185,6 @@ export default function SMSCodeCatalogCheckout() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="inline-flex rounded-full bg-brand-500/10 px-3 py-1 text-xs font-bold text-brand-500">Qevanora Official Live</div>
-            <h2 className="mt-3 text-xl font-black text-gray-900 dark:text-white">Nomor OTP Internasional</h2>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Harga dan stok live. Harga dicek ulang sekali lagi sebelum saldo dipotong.</p>
           </div>
           <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm dark:bg-white/[0.04]">
             <div className="font-bold text-gray-800 dark:text-white">{country?.emoji || "🌐"} {country?.name || "Memuat..."}</div>
