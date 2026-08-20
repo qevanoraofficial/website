@@ -4,18 +4,20 @@ import {
   scryptSync,
   timingSafeEqual,
 } from "node:crypto";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const ADMIN_SESSION_COOKIE = "qevanora_admin_session";
 export const ADMIN_SESSION_MAX_AGE = 60 * 60 * 8;
-
-const PASSWORD_SALT = "e4bbfe933e81c79b95d838d8dc3e9a40";
-const PASSWORD_HASH =
-  "c92051d1d10a7663553b66cfc97a9d51ae7741c6cde16838539117828fbe845f1de6802b510fc2db927fd58e2ac6607a77fdd439e2169f1c89bb260b1bf510d6";
 
 type AdminSessionPayload = {
   version: 1;
   expiresAt: number;
   nonce: string;
+};
+
+type AdminCredential = {
+  password_salt: string;
+  password_hash: string;
 };
 
 function getSessionSecret(): string {
@@ -47,9 +49,39 @@ function safeEqual(first: string, second: string): boolean {
   );
 }
 
-export function verifyAdminPassword(password: string): boolean {
-  const calculatedHash = scryptSync(password, PASSWORD_SALT, 64);
-  const expectedHash = Buffer.from(PASSWORD_HASH, "hex");
+async function getAdminCredential(): Promise<AdminCredential> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("admin_credentials")
+    .select("password_salt,password_hash")
+    .eq("id", 1)
+    .single();
+
+  if (error || !data) {
+    throw new Error("Credential admin tidak tersedia.");
+  }
+
+  const passwordSalt = String(data.password_salt || "").trim();
+  const passwordHash = String(data.password_hash || "").trim().toLowerCase();
+
+  if (!passwordSalt || !/^[0-9a-f]{128}$/.test(passwordHash)) {
+    throw new Error("Credential admin tidak valid.");
+  }
+
+  return {
+    password_salt: passwordSalt,
+    password_hash: passwordHash,
+  };
+}
+
+export async function verifyAdminPassword(password: string): Promise<boolean> {
+  if (!password || password.length > 256) {
+    return false;
+  }
+
+  const credential = await getAdminCredential();
+  const calculatedHash = scryptSync(password, credential.password_salt, 64);
+  const expectedHash = Buffer.from(credential.password_hash, "hex");
 
   return (
     calculatedHash.length === expectedHash.length &&
