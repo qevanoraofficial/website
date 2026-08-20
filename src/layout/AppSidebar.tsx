@@ -75,9 +75,7 @@ export default function AppSidebar() {
 
         setCategories(
           getProductCategories(payload.products).filter(
-            (category) =>
-              category.slug !== "premium-apps" &&
-              category.slug !== "followers-sosmed",
+            (category) => category.slug !== "followers-sosmed",
           ),
         );
       } catch (error) {
