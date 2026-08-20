@@ -22,7 +22,14 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const password = String(formData.get("password") || "");
 
-  if (!verifyAdminPassword(password)) {
+  let passwordValid = false;
+  try {
+    passwordValid = await verifyAdminPassword(password);
+  } catch {
+    return NextResponse.redirect(loginUrl(request, "config"), 303);
+  }
+
+  if (!passwordValid) {
     await new Promise((resolve) => setTimeout(resolve, 700));
     return NextResponse.redirect(loginUrl(request, "invalid"), 303);
   }
