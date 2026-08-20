@@ -270,32 +270,41 @@ export default function OrderNotifications() {
         const presentation = statusPresentation[order.status];
         const isFollow = order.supplier === "follow";
         const isNokos = order.supplier === "nokos";
+        const isSmscode = order.supplier === "smscode";
         const isPremiumApps = order.supplier === "alfaprem";
         const message =
           order.status === "failed" && order.error
             ? order.error
-            : isNokos && order.reviewRequired
-              ? order.reviewMessage ||
-                "Provider belum memberi hasil final. Order sedang diverifikasi; jangan membuat order ulang."
-            : isPremiumApps && order.status === "accepted"
-              ? "Pembayaran berhasil. Sistem sedang menunggu data akun Premium Apps dari supplier."
-              : isPremiumApps && order.status === "completed"
-                ? "Premium Apps siap. Salin data akun di bawah dan simpan dengan aman."
-                : isPremiumApps && order.status === "cancelled"
-                  ? "Order Premium Apps gagal/dibatalkan. Saldo QEVANORA dikembalikan otomatis."
-                  : isNokos && order.status === "accepted"
-                    ? "Nomor sudah diterbitkan. Sistem sedang menunggu OTP masuk."
-                    : isNokos && order.status === "completed"
-                      ? "OTP sudah diterima. Aktivasi selesai."
-                      : isNokos && order.status === "cancelled"
-                        ? "Aktivasi dibatalkan. Saldo QEVANORA dikembalikan otomatis."
-                        : isFollow && order.status === "accepted"
-                          ? "Order sudah dibayar dan sedang diproses otomatis. Status akan diperbarui otomatis."
-                          : isFollow && order.status === "completed"
-                            ? "Order sudah selesai diproses."
-                            : isFollow && order.status === "cancelled"
-                              ? "Order supplier dibatalkan/gagal. Saldo QEVANORA dikembalikan otomatis sesuai status pembayaran."
-                              : presentation.message;
+            : isSmscode && order.status === "pending"
+              ? "Order OTP sedang diverifikasi ke SMSCode. Jangan membuat order baru. Buka detail untuk melihat status terbaru."
+              : isSmscode && order.status === "accepted"
+                ? "Nomor OTP sudah diterbitkan. Buka detail OTP untuk menyalin nomor dan menunggu SMS masuk."
+                : isSmscode && order.status === "completed"
+                  ? "OTP sudah diterima. Buka detail OTP untuk melihat dan menyalin kode."
+                  : isSmscode && order.status === "cancelled"
+                    ? "Order OTP sudah dibatalkan atau kedaluwarsa. Buka detail order untuk melihat status refund."
+                    : isNokos && order.reviewRequired
+                      ? order.reviewMessage ||
+                        "Provider belum memberi hasil final. Order sedang diverifikasi; jangan membuat order ulang."
+                      : isPremiumApps && order.status === "accepted"
+                        ? "Pembayaran berhasil. Sistem sedang menunggu data akun Premium Apps dari supplier."
+                        : isPremiumApps && order.status === "completed"
+                          ? "Premium Apps siap. Salin data akun di bawah dan simpan dengan aman."
+                          : isPremiumApps && order.status === "cancelled"
+                            ? "Order Premium Apps gagal/dibatalkan. Saldo QEVANORA dikembalikan otomatis."
+                            : isNokos && order.status === "accepted"
+                              ? "Nomor sudah diterbitkan. Sistem sedang menunggu OTP masuk."
+                              : isNokos && order.status === "completed"
+                                ? "OTP sudah diterima. Aktivasi selesai."
+                                : isNokos && order.status === "cancelled"
+                                  ? "Aktivasi dibatalkan. Saldo QEVANORA dikembalikan otomatis."
+                                  : isFollow && order.status === "accepted"
+                                    ? "Order sudah dibayar dan sedang diproses otomatis. Status akan diperbarui otomatis."
+                                    : isFollow && order.status === "completed"
+                                      ? "Order sudah selesai diproses."
+                                      : isFollow && order.status === "cancelled"
+                                        ? "Order supplier dibatalkan/gagal. Saldo QEVANORA dikembalikan otomatis sesuai status pembayaran."
+                                        : presentation.message;
 
         return (
           <article
@@ -324,6 +333,19 @@ export default function OrderNotifications() {
             <p className="mt-4 text-sm leading-6 text-gray-500 dark:text-gray-400">
               {message}
             </p>
+
+            {isSmscode && (
+              <a
+                href={`/smscode/orders/${encodeURIComponent(order.id)}`}
+                className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-brand-600"
+              >
+                {order.status === "completed"
+                  ? "Lihat & Salin OTP"
+                  : order.status === "cancelled" || order.status === "failed"
+                    ? "Lihat Detail Order"
+                    : "Buka Nomor & Tunggu OTP"}
+              </a>
+            )}
 
             {isPremiumApps && (
               <div className="mt-3 rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4">
