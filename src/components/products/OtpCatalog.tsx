@@ -1,13 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import NokosCatalog from "@/components/products/NokosCatalog";
 import SMSCodeCatalog from "@/components/products/SMSCodeCatalog";
 
 type SupplierTab = "smscode" | "nokos";
 
+const SERVICE_ICONS: Array<{ match: string; src: string }> = [
+  { match: "instagram", src: "/images/products/services/instagram.svg" },
+  { match: "facebook", src: "/images/products/services/facebook.svg" },
+  { match: "tiktok", src: "/images/products/services/tiktok.svg" },
+  { match: "shopee", src: "/images/products/services/shopee.svg" },
+  { match: "tinder", src: "/images/products/services/tinder.svg" },
+];
+
+function getServiceIcon(serviceName: string) {
+  const normalizedName = serviceName.toLowerCase();
+  return SERVICE_ICONS.find(({ match }) => normalizedName.includes(match))?.src;
+}
+
 export default function OtpCatalog() {
   const [supplier, setSupplier] = useState<SupplierTab>("smscode");
+  const catalogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (supplier !== "smscode") return;
+
+    const root = catalogRef.current;
+    if (!root) return;
+
+    const applyServiceIcons = () => {
+      root.querySelectorAll<HTMLElement>("article").forEach((article) => {
+        const title = article.querySelector("h3");
+        const serviceName = title?.textContent?.trim() || "";
+        const iconSrc = getServiceIcon(serviceName);
+        if (!iconSrc) return;
+
+        const badge = title?.parentElement?.previousElementSibling as HTMLElement | null;
+        if (!badge || badge.dataset.serviceIcon === iconSrc) return;
+
+        badge.replaceChildren();
+
+        const image = document.createElement("img");
+        image.src = iconSrc;
+        image.alt = `${serviceName} logo`;
+        image.width = 28;
+        image.height = 28;
+        image.className = "h-7 w-7 object-contain";
+
+        badge.appendChild(image);
+        badge.dataset.serviceIcon = iconSrc;
+      });
+    };
+
+    applyServiceIcons();
+
+    const observer = new MutationObserver(applyServiceIcons);
+    observer.observe(root, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, [supplier]);
 
   return (
     <div className="space-y-5">
@@ -49,7 +101,9 @@ export default function OtpCatalog() {
         </div>
       </section>
 
-      {supplier === "smscode" ? <SMSCodeCatalog /> : <NokosCatalog />}
+      <div ref={catalogRef}>
+        {supplier === "smscode" ? <SMSCodeCatalog /> : <NokosCatalog />}
+      </div>
     </div>
   );
 }
