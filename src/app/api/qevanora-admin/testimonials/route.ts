@@ -19,6 +19,7 @@ import {
   updateJsonArray,
   writeRepositoryFile,
 } from "@/lib/github-store";
+import { sendTestimonialToTelegram } from "@/lib/telegram-testimonials";
 import type { TransactionTestimonial } from "@/types/catalog";
 
 export const runtime = "nodejs";
@@ -144,8 +145,19 @@ export async function POST(request: NextRequest) {
 
     revalidateTestimonialPages();
 
+    // Telegram bersifat distribusi tambahan. Kalau Telegram sedang bermasalah,
+    // testimoni yang sudah berhasil tersimpan di website tidak di-rollback.
+    const telegram = await sendTestimonialToTelegram(testimonial, image);
+
     return NextResponse.json(
-      { ok: true, testimonial },
+      {
+        ok: true,
+        testimonial,
+        telegram,
+        warning: telegram.ok
+          ? undefined
+          : "Testimoni tersimpan di website, tetapi gagal dikirim ke channel Telegram.",
+      },
       { status: 201, headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
@@ -218,21 +230,18 @@ export async function DELETE(request: NextRequest) {
       },
     );
 
-    if (removed.imagePath) {
-      try {
-        await deleteRepositoryFile(
-          removed.imagePath,
-          `admin testimonial: hapus gambar ${id}`,
-        );
-      } catch {
-        // Data utama sudah terhapus; media dapat dibersihkan manual.
-      }
-    }
-
+    // Jangan membaca/decode file gambar di request DELETE. Pada Cloudflare
+    // Workers Free, file bukti besar bisa membuat request melewati batas CPU
+    // atau memory. Record testimoni tetap dihapus; media lama dibersihkan
+    // terpisah bila memang diperlukan.
     revalidateTestimonialPages();
 
     return NextResponse.json(
-      { ok: true, testimonial: removed },
+      {
+        ok: true,
+        testimonial: removed,
+        mediaCleanupDeferred: Boolean(removed.imagePath),
+      },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

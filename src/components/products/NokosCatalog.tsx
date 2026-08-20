@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import NokosBuyButton from "@/components/products/NokosBuyButton";
 
-type ServerMode = "auto" | "s1" | "s2";
+type ServerMode = "s1" | "s2";
 type CatalogMode = "country" | "cheapest";
 type CountrySort = "popular" | "price" | "stock" | "name";
 type CheapestSort = "price" | "stock" | "name";
@@ -54,6 +54,75 @@ type ReferencePayload = {
   countries?: Country[];
   error?: string;
 };
+
+type LiveQuotePayload = {
+  ok?: boolean;
+  providerPrice?: number;
+  sellingPrice?: number;
+  stock?: number;
+  server?: ServerMode;
+  error?: string;
+};
+
+async function quoteProductLive(
+  product: Product,
+  server: ServerMode,
+): Promise<Product | null> {
+  const service = String(product.nokosServiceCode || "").trim();
+  const country = Math.trunc(Number(product.nokosCountryId));
+
+  if (!service || !Number.isInteger(country) || country < 0) return null;
+
+  const params = new URLSearchParams({
+    service,
+    country: String(country),
+    server,
+  });
+
+  try {
+    const response = await fetch(`/api/nokos/quote?${params.toString()}`, {
+      cache: "no-store",
+    });
+    const payload = await parseJson<LiveQuotePayload>(response);
+
+    const price = Math.round(Number(payload.sellingPrice || 0));
+    const stock = Math.trunc(Number(payload.stock || 0));
+
+    if (!response.ok || !payload.ok || price <= 0 || stock <= 0) {
+      return null;
+    }
+
+    return {
+      ...product,
+      id: `nokos:${encodeURIComponent(service)}:${country}:${server}`,
+      price,
+      stock,
+      nokosServer: server,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function hydrateLiveQuotes(
+  candidates: Product[],
+  server: ServerMode,
+) {
+  const output: Product[] = [];
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < candidates.length) {
+      const index = cursor;
+      cursor += 1;
+      const quoted = await quoteProductLive(candidates[index], server);
+      if (quoted) output.push(quoted);
+    }
+  }
+
+  await Promise.all([worker(), worker()]);
+  return output;
+}
 
 type UserOrder = {
   id: string;
@@ -181,10 +250,28 @@ function isPopularService(name: string) {
 
 function serviceBadge(name: string) {
   const value = normalized(serviceLabel(name));
-  if (value.includes("whatsapp")) return "WA";
+  if (value.includes("whatsapp")) {
+    return (
+      <img
+        src="/images/nokos/whatsapp.svg"
+        alt=""
+        aria-hidden="true"
+        className="h-6 w-6 object-contain"
+      />
+    );
+  }
   if (value.includes("telegram")) return "TG";
   if (value.includes("instagram")) return "IG";
-  if (value.includes("facebook")) return "FB";
+  if (value.includes("facebook")) {
+    return (
+      <img
+        src="/images/nokos/facebook.svg"
+        alt=""
+        aria-hidden="true"
+        className="h-6 w-6 object-contain"
+      />
+    );
+  }
   if (value.includes("tiktok")) return "TT";
   if (value.includes("google") || value.includes("youtube")) return "G";
   if (value.includes("discord")) return "DC";
@@ -255,15 +342,13 @@ function operatorLabel(value: string) {
 }
 
 function serverLabel(server: ServerMode) {
-  if (server === "auto") return "Otomatis Termurah";
   return server === "s1" ? "Server Express" : "Server Plus";
 }
 
 function serverDescription(server: ServerMode) {
-  if (server === "auto") return "Bandingkan Plus & Express per layanan";
   return server === "s1"
-    ? "Pilihan manual • Server Express"
-    : "Pilihan manual • Server Plus";
+    ? "Harga & stok API • Server Express"
+    : "Harga & stok API • Server Plus";
 }
 
 function serviceRank(service: Service) {
@@ -287,7 +372,7 @@ function serviceRank(service: Service) {
 
 export default function NokosCatalog() {
   const [mode, setMode] = useState<CatalogMode>("country");
-  const [server, setServer] = useState<ServerMode>("auto");
+  const [server, setServer] = useState<ServerMode>("s2");
   const [countries, setCountries] = useState<Country[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [country, setCountry] = useState(6);
@@ -324,6 +409,7 @@ export default function NokosCatalog() {
   const [referenceLoading, setReferenceLoading] = useState(true);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const catalogRequestRef = useRef(0);
 
   const selectedCountry = useMemo(
     () => countries.find((item) => item.id === country) || countries[0],
@@ -407,6 +493,7 @@ export default function NokosCatalog() {
       return;
     }
 
+    const requestId = ++catalogRequestRef.current;
     setLoading(true);
     setError("");
 
@@ -415,7 +502,7 @@ export default function NokosCatalog() {
         mode,
         server,
         page: String(page),
-        limit: "24",
+        limit: "8",
         minStock: String(minStock),
         maxPrice: String(maxPrice),
       });
@@ -439,9 +526,54 @@ export default function NokosCatalog() {
         throw new Error(payload.error || "Layanan OTP gagal dimuat.");
       }
 
-      setProducts(Array.isArray(payload.products) ? payload.products : []);
+      const candidates = Array.isArray(payload.products)
+        ? payload.products
+        : [];
+
+      // /api/nokos/catalog sudah membawa harga + stok live dari bulk getPrices.
+      // Jangan panggil getAvailability satu-per-satu untuk setiap produk.
+      const quotedProducts = candidates;
+      if (catalogRequestRef.current !== requestId) return;
+
+      let nextProducts = quotedProducts.filter((product) => {
+        if (minStock > 0 && product.stock < minStock) return false;
+        if (maxPrice > 0 && product.price > maxPrice) return false;
+        return product.price > 0 && product.stock > 0;
+      });
+
+      if (mode === "country") {
+        if (countrySort === "price") {
+          nextProducts = nextProducts.sort(
+            (a, b) => a.price - b.price || b.stock - a.stock,
+          );
+        } else if (countrySort === "stock") {
+          nextProducts = nextProducts.sort(
+            (a, b) => b.stock - a.stock || a.price - b.price,
+          );
+        } else if (countrySort === "name") {
+          nextProducts = nextProducts.sort((a, b) =>
+            a.name.localeCompare(b.name, "id-ID"),
+          );
+        }
+      } else if (cheapestSort === "price") {
+        nextProducts = nextProducts.sort(
+          (a, b) => a.price - b.price || b.stock - a.stock,
+        );
+      } else if (cheapestSort === "stock") {
+        nextProducts = nextProducts.sort(
+          (a, b) => b.stock - a.stock || a.price - b.price,
+        );
+      }
+
+      setProducts(nextProducts);
       setTotal(Number(payload.total || 0));
       setTotalPages(Math.max(1, Number(payload.totalPages || 1)));
+
+      if (candidates.length > 0 && nextProducts.length === 0) {
+        setError(
+          `Belum ada harga/stok live yang valid di ${serverLabel(server)} untuk halaman ini.`,
+        );
+      }
 
       if (countries.length === 0 && Array.isArray(payload.countries)) {
         setCountries(payload.countries);
@@ -452,7 +584,9 @@ export default function NokosCatalog() {
       setTotalPages(1);
       setError(err instanceof Error ? err.message : "Layanan OTP gagal dimuat.");
     } finally {
-      setLoading(false);
+      if (catalogRequestRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [
     mode,
@@ -921,9 +1055,9 @@ export default function NokosCatalog() {
         </section>
       ) : products.length === 0 ? (
         <section className="rounded-3xl border border-[#17314d] bg-[#06111f] px-5 py-12 text-center">
-          <h2 className="text-lg font-black text-white">Stok belum tersedia</h2>
+          <h2 className="text-lg font-black text-white">Harga/stok live belum tersedia</h2>
           <p className="mt-2 text-xs text-gray-500">
-            Coba ubah layanan, negara, server, operator, atau filter.
+            Tidak ada quote provider yang valid pada halaman ini. Coba server, halaman, layanan, atau negara lain.
           </p>
         </section>
       ) : mode === "country" ? (
@@ -960,7 +1094,14 @@ export default function NokosCatalog() {
                     </div>
                   </div>
 
-                  <p className="mt-3 text-sm font-black text-brand-500">{formatRupiah(product.price)}</p>
+                  <div className="mt-3">
+                    <p className="text-sm font-black text-brand-500">
+                      {formatRupiah(product.price)}
+                    </p>
+                    <p className="mt-0.5 text-[8px] font-bold uppercase tracking-wide text-emerald-500">
+                      Live getAvailability • {product.nokosServer === "s1" ? "Express" : "Plus"}
+                    </p>
+                  </div>
                   <NokosBuyButton
                     compact
                     productId={product.id}
@@ -1070,19 +1211,11 @@ export default function NokosCatalog() {
             </div>
 
             <div className="mt-4 rounded-2xl border border-brand-500/15 bg-brand-500/[0.05] p-3 text-[10px] leading-5 text-gray-400">
-              Mode Otomatis membandingkan harga dan stok live Server Plus + Express untuk setiap layanan. Server termurah yang masih punya stok dipakai sampai checkout, jadi customer tidak perlu memilih manual.
+              Pilih Server Plus atau Server Express. Harga dan stok diambil dari API provider untuk server yang dipilih. Saat checkout harga dan stok diperiksa ulang sebelum saldo dipotong.
             </div>
 
             <div className="mt-3 space-y-3">
               {([
-                {
-                  value: "auto" as ServerMode,
-                  name: "Otomatis Termurah",
-                  badge: "DIREKOMENDASIKAN",
-                  description: "Bandingkan Server Plus + Express",
-                  detail: "Setiap layanan otomatis memakai server dengan harga provider paling murah yang stoknya tersedia. Jika harga sama, dipilih stok yang lebih banyak.",
-                  icon: "✦",
-                },
                 {
                   value: "s2" as ServerMode,
                   name: "Server Plus",

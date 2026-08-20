@@ -25,8 +25,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const mode = url.searchParams.get("mode") === "cheapest" ? "cheapest" : "country";
     const serverParam = url.searchParams.get("server");
-    const server =
-      serverParam === "s1" ? "s1" : serverParam === "s2" ? "s2" : "auto";
+    const server = serverParam === "s1" ? "s1" : "s2";
     const page = intParam(url.searchParams.get("page"), 1);
     const limit = intParam(url.searchParams.get("limit"), 24);
     const minStock = Math.max(0, intParam(url.searchParams.get("minStock"), 0));

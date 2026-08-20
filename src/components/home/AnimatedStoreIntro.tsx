@@ -280,6 +280,8 @@ export default function AnimatedStoreIntro({
         .filter(
           (product) =>
             product.active !== false &&
+            product.category !== "premium-apps" &&
+            product.category !== "followers-sosmed" &&
             Boolean(product.id) &&
             Boolean(product.name) &&
             Boolean(product.category),

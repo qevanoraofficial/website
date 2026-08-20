@@ -50,6 +50,20 @@ export function mapOrderForCustomer(row: OrderRow) {
   const phone = String(input.phone || supplierPayload.phone || "");
   const expiresAt = String(input.expiresAt || supplierPayload.expires_at || "");
   const activationId = String(input.activationId || supplierRow?.supplier_order_id || "");
+  const premiumCredentials = String(
+    input.premiumCredentials || supplierPayload.credentials_text || "",
+  ).slice(0, 6000);
+  const reviewRequired = Boolean(
+    input.reconciliationRequired || supplierPayload.reconciliationRequired,
+  );
+  const manualReviewRequired = Boolean(supplierPayload.manualReviewRequired);
+  const reviewMessage = String(
+    input.reviewMessage ||
+      supplierPayload.reviewMessage ||
+      (manualReviewRequired
+        ? "Provider belum memberi hasil final setelah beberapa percobaan otomatis. Order diamankan untuk pengecekan admin; jangan membuat order ulang."
+        : "Provider belum memberi hasil final. Sistem sedang merekonsiliasi order dengan request yang sama; jangan membuat order ulang."),
+  ).slice(0, 1000);
 
   return {
     id: row.order_code || row.id,
@@ -71,7 +85,17 @@ export function mapOrderForCustomer(row: OrderRow) {
     otpCode,
     sms: String(input.sms || supplierPayload.sms || ""),
     expiresAt,
-    canCancel: supplier === "nokos" && toLegacyStatus(row.status) === "accepted" && !otpCode && Boolean(activationId),
+    premiumCredentials,
+    providerOrderId: String(input.providerOrderId || supplierRow?.supplier_order_id || ""),
+    reviewRequired,
+    manualReviewRequired,
+    reviewMessage,
+    canCancel:
+      supplier === "nokos" &&
+      toLegacyStatus(row.status) === "accepted" &&
+      !otpCode &&
+      Boolean(activationId) &&
+      !reviewRequired,
   };
 }
 
@@ -106,5 +130,6 @@ export function mapOrderForBot(
     quantity: mapped.quantity,
     phone: mapped.phone,
     otpCode: mapped.otpCode,
+    premiumCredentials: mapped.premiumCredentials,
   };
 }

@@ -8,7 +8,7 @@ export type ProductCategory = {
 };
 
 const pinnedProductCategories: ProductCategory[] = [
-  { slug: "pterodactyl-panel", name: "Pterodactyl Panel" },
+  { slug: "premium-apps", name: "Premium Apps" },
   { slug: "sosmed-facebook", name: "Sosmed Facebook" },
   { slug: "followers-sosmed", name: "Followers Sosmed" },
   { slug: "nokos", name: "Nokos" },

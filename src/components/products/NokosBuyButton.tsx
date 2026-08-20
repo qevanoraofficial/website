@@ -19,6 +19,13 @@ function serviceLabel(productName: string) {
   return String(productName || "").split(" - ")[0].trim() || "layanan";
 }
 
+function createCheckoutKey() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `nokos-${crypto.randomUUID()}`;
+  }
+  return `nokos-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 type Props = {
   productId: string;
   productName: string;
@@ -40,6 +47,7 @@ export default function NokosBuyButton({
   const [open, setOpen] = useState(false);
   const [balance, setBalance] = useState(0);
   const [checkoutPrice, setCheckoutPrice] = useState(price);
+  const [checkoutKey, setCheckoutKey] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
 
@@ -79,18 +87,25 @@ export default function NokosBuyButton({
       return;
     }
 
+    const activeCheckoutKey = checkoutKey || createCheckoutKey();
+    if (!checkoutKey) setCheckoutKey(activeCheckoutKey);
+
     setSending(true);
     setError("");
 
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": activeCheckoutKey,
+        },
         body: JSON.stringify({
           productId,
           paymentMethod: "wallet",
           operator,
           quotedPrice: checkoutPrice,
+          checkoutKey: activeCheckoutKey,
         }),
       });
 
@@ -104,6 +119,7 @@ export default function NokosBuyButton({
         code?: string;
         currentPrice?: number;
         selectedServer?: "s1" | "s2";
+        retryWithNewCheckoutKey?: boolean;
       } = {};
 
       try {
@@ -125,6 +141,7 @@ export default function NokosBuyButton({
       }
 
       if (!response.ok || !payload.ok || !payload.orderId) {
+        if (payload.retryWithNewCheckoutKey) setCheckoutKey("");
         throw new Error(payload.error || "Order gagal diproses.");
       }
 
@@ -137,6 +154,7 @@ export default function NokosBuyButton({
       }
 
       setOrderPageNotice(payload.message || `Order ${payload.orderId} berhasil dibuat.`);
+      setCheckoutKey("");
       setOpen(false);
       router.push("/notifications");
     } catch (err) {

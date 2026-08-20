@@ -15,10 +15,11 @@ const CONTENT_TYPES: Record<string, string> = {
 };
 
 async function readLocalMedia(path: string): Promise<Buffer | null> {
-  const projectRoot = resolve(process.cwd());
-  const absolutePath = resolve(projectRoot, path);
+  const storageRoot = resolve(process.cwd(), "storage");
+  const relativePath = path.slice("storage/".length);
+  const absolutePath = resolve(storageRoot, relativePath);
 
-  if (!absolutePath.startsWith(`${projectRoot}${sep}`)) {
+  if (!absolutePath.startsWith(`${storageRoot}${sep}`)) {
     return null;
   }
 

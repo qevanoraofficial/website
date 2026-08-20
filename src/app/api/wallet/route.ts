@@ -38,7 +38,7 @@ export async function GET() {
       supabase
         .from("topups")
         .select(
-          "id, topup_code, status, amount, fee, total_amount, payment_provider, payment_method, external_id, checkout_url, expires_at, paid_at, created_at, updated_at"
+          "id, topup_code, status, amount, fee, total_amount, payment_provider, payment_method, external_id, checkout_url, qr_string, expires_at, paid_at, created_at, updated_at"
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })

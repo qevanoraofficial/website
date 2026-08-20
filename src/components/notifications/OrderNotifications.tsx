@@ -26,6 +26,10 @@ type UserOrder = {
   sms?: string;
   expiresAt?: string;
   canCancel?: boolean;
+  premiumCredentials?: string;
+  reviewRequired?: boolean;
+  manualReviewRequired?: boolean;
+  reviewMessage?: string;
 };
 
 const statusPresentation: Record<
@@ -145,6 +149,17 @@ export default function OrderNotifications() {
       }
 
       setOrders(payload.orders);
+
+      if (
+        payload.orders.some(
+          (order) => order.supplier === "alfaprem" && order.status === "accepted",
+        )
+      ) {
+        void fetch("/api/premium-apps/sync", {
+          method: "POST",
+          cache: "no-store",
+        }).catch(() => undefined);
+      }
     } catch (error) {
       setOrders((current) => current || []);
       setNotice((current) =>
@@ -255,22 +270,32 @@ export default function OrderNotifications() {
         const presentation = statusPresentation[order.status];
         const isFollow = order.supplier === "follow";
         const isNokos = order.supplier === "nokos";
+        const isPremiumApps = order.supplier === "alfaprem";
         const message =
           order.status === "failed" && order.error
             ? order.error
-            : isNokos && order.status === "accepted"
-              ? "Nomor sudah diterbitkan. Sistem sedang menunggu OTP masuk."
-              : isNokos && order.status === "completed"
-                ? "OTP sudah diterima. Aktivasi selesai."
-                : isNokos && order.status === "cancelled"
-                  ? "Aktivasi dibatalkan. Saldo QEVANORA dikembalikan otomatis."
-                  : isFollow && order.status === "accepted"
-                    ? "Order sudah dibayar dan sedang diproses otomatis. Status akan diperbarui otomatis."
-                    : isFollow && order.status === "completed"
-                      ? "Order sudah selesai diproses."
-                      : isFollow && order.status === "cancelled"
-                        ? "Order supplier dibatalkan/gagal. Saldo QEVANORA dikembalikan otomatis sesuai status pembayaran."
-                        : presentation.message;
+            : isNokos && order.reviewRequired
+              ? order.reviewMessage ||
+                "Provider belum memberi hasil final. Order sedang diverifikasi; jangan membuat order ulang."
+            : isPremiumApps && order.status === "accepted"
+              ? "Pembayaran berhasil. Sistem sedang menunggu data akun Premium Apps dari supplier."
+              : isPremiumApps && order.status === "completed"
+                ? "Premium Apps siap. Salin data akun di bawah dan simpan dengan aman."
+                : isPremiumApps && order.status === "cancelled"
+                  ? "Order Premium Apps gagal/dibatalkan. Saldo QEVANORA dikembalikan otomatis."
+                  : isNokos && order.status === "accepted"
+                    ? "Nomor sudah diterbitkan. Sistem sedang menunggu OTP masuk."
+                    : isNokos && order.status === "completed"
+                      ? "OTP sudah diterima. Aktivasi selesai."
+                      : isNokos && order.status === "cancelled"
+                        ? "Aktivasi dibatalkan. Saldo QEVANORA dikembalikan otomatis."
+                        : isFollow && order.status === "accepted"
+                          ? "Order sudah dibayar dan sedang diproses otomatis. Status akan diperbarui otomatis."
+                          : isFollow && order.status === "completed"
+                            ? "Order sudah selesai diproses."
+                            : isFollow && order.status === "cancelled"
+                              ? "Order supplier dibatalkan/gagal. Saldo QEVANORA dikembalikan otomatis sesuai status pembayaran."
+                              : presentation.message;
 
         return (
           <article
@@ -282,9 +307,7 @@ export default function OrderNotifications() {
                 {order.status === "pending" && <PendingAnimation />}
 
                 <div className="min-w-0">
-                  <p
-                    className={`text-sm font-semibold ${presentation.titleClassName}`}
-                  >
+                  <p className={`text-sm font-semibold ${presentation.titleClassName}`}>
                     {presentation.title}
                   </p>
                   <h2 className="mt-2 break-words text-lg font-semibold text-gray-800 dark:text-white/90">
@@ -301,6 +324,22 @@ export default function OrderNotifications() {
             <p className="mt-4 text-sm leading-6 text-gray-500 dark:text-gray-400">
               {message}
             </p>
+
+            {isPremiumApps && (
+              <div className="mt-3 rounded-xl border border-brand-500/20 bg-brand-500/[0.04] p-4">
+                {order.premiumCredentials ? (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-brand-500">Data Akun Premium</p>
+                    <pre className="mt-3 select-all whitespace-pre-wrap break-words rounded-xl border border-gray-200 bg-white p-3 font-mono text-sm leading-6 text-gray-800 dark:border-gray-700 dark:bg-[#06111e] dark:text-gray-100">
+                      {order.premiumCredentials}
+                    </pre>
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Tekan dan tahan teks di atas untuk menyalin. Jangan bagikan data akun ke orang lain.</p>
+                  </div>
+                ) : (
+                  <p className="text-xs leading-5 text-gray-500 dark:text-gray-400">Menunggu data akun dari supplier... halaman ini diperbarui otomatis.</p>
+                )}
+              </div>
+            )}
 
             {isFollow && (order.target || order.quantity) && (
               <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50/60 p-3 text-xs leading-5 text-gray-500 dark:border-gray-800 dark:bg-white/[0.02] dark:text-gray-400">
