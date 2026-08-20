@@ -232,7 +232,13 @@ export default function SMSCodeCatalogCheckout() {
           {products.map((product) => (
             <article key={`${product.catalogProductId}:${product.countryId}`} className="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-sm font-black text-brand-500">{badge(product.serviceName)}</div>
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${product.serviceName.toLowerCase().includes("whatsapp") ? "bg-white shadow-sm ring-1 ring-gray-200/80 dark:bg-white/[0.08] dark:ring-white/10" : "bg-brand-500/10 text-sm font-black text-brand-500"}`}>
+                  {product.serviceName.toLowerCase().includes("whatsapp") ? (
+                    <img src="/images/smscode/whatsapp.svg" alt="" aria-hidden="true" className="h-7 w-7 object-contain" />
+                  ) : (
+                    badge(product.serviceName)
+                  )}
+                </div>
                 <div className="min-w-0">
                   <h3 className="truncate font-black text-gray-900 dark:text-white">{product.serviceName}</h3>
                   <p className="mt-1 text-xs text-gray-500">{product.countryEmoji} {product.countryName} {product.dialCode}</p>
