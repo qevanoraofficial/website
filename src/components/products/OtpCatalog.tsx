@@ -33,7 +33,13 @@ export default function OtpCatalog() {
         const badge = title?.parentElement?.previousElementSibling as HTMLElement | null;
         if (!badge) return;
 
-        if (badge.dataset.serviceIcon === iconSrc) return;
+        const currentImage = badge.querySelector<HTMLImageElement>("img");
+        if (
+          badge.dataset.serviceIcon === iconSrc &&
+          currentImage?.getAttribute("src") === iconSrc
+        ) {
+          return;
+        }
 
         badge.replaceChildren();
         const image = document.createElement("img");
@@ -42,6 +48,11 @@ export default function OtpCatalog() {
         image.width = 28;
         image.height = 28;
         image.className = "h-7 w-7 object-contain";
+        if (iconSrc.endsWith("/tiktok.svg")) {
+          image.style.backgroundColor = "white";
+          image.style.borderRadius = "0.25rem";
+          image.style.padding = "2px";
+        }
         badge.appendChild(image);
         badge.dataset.serviceIcon = iconSrc;
       });
