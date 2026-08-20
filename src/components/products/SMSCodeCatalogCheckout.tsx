@@ -80,6 +80,7 @@ function serviceIcon(name: string): string | null {
   if (value.includes("tiktok") || value.includes("douyin")) return "/images/smscode/tiktok.svg";
   if (value.includes("shopee")) return "/images/smscode/shopee.svg";
   if (value.includes("tinder")) return "/images/smscode/tinder.svg";
+  if (value.includes("discord")) return "/images/smscode/discord.svg";
 
   const googleServices = [
     "googlevoice",
