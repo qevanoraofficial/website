@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProducts } from "@/lib/catalog";
 import FollowServicesCatalog from "@/components/products/FollowServicesCatalog";
-import NokosCatalog from "@/components/products/NokosCatalog";
+import OtpCatalog from "@/components/products/OtpCatalog";
 import PremiumAppsCatalog from "@/components/products/PremiumAppsCatalog";
 import {
   formatRupiah,
@@ -66,7 +66,7 @@ export default async function ProductCategoryPage({
   }
 
   if (category === "nokos") {
-    return <NokosCatalog />;
+    return <OtpCatalog />;
   }
 
   const products = getCategoryProducts(allProducts, category);
