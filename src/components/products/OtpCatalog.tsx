@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import NokosCatalog from "@/components/products/NokosCatalog";
-import SMSCodeCatalog from "@/components/products/SMSCodeCatalog";
+import SMSCodeCatalogCheckout from "@/components/products/SMSCodeCatalogCheckout";
 
 type SupplierTab = "smscode" | "nokos";
 
@@ -18,7 +18,7 @@ export default function OtpCatalog() {
               Nomor OTP
             </h1>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Pilih sumber nomor. Supplier lama tetap tersedia sebagai fallback selama integrasi SMSCode diuji.
+              SMSCode memakai harga dan stok live. Supplier Nokos lama tetap tersedia sebagai fallback.
             </p>
           </div>
 
@@ -49,7 +49,7 @@ export default function OtpCatalog() {
         </div>
       </section>
 
-      {supplier === "smscode" ? <SMSCodeCatalog /> : <NokosCatalog />}
+      {supplier === "smscode" ? <SMSCodeCatalogCheckout /> : <NokosCatalog />}
     </div>
   );
 }
