@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 type LoginPageProps = {
   searchParams: Promise<{
     error?: string;
+    retry?: string;
   }>;
 };
 
@@ -34,7 +35,11 @@ export default async function AdminLoginPage({
     redirect("/admin/panel");
   }
 
-  const { error } = await searchParams;
+  const { error, retry } = await searchParams;
+  const retryMinutes = Math.min(
+    60,
+    Math.max(1, Math.trunc(Number(retry || 30)) || 30),
+  );
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#010714] px-4 py-10 text-white">
@@ -72,13 +77,23 @@ export default async function AdminLoginPage({
           </div>
         )}
 
+        {error === "rate" && (
+          <div
+            role="alert"
+            className="mt-6 rounded-xl border border-error-500/30 bg-error-500/10 px-4 py-3 text-sm leading-6 text-error-300"
+          >
+            Terlalu banyak percobaan login. Akses dari jaringan ini dikunci
+            sementara. Coba lagi sekitar {retryMinutes} menit.
+          </div>
+        )}
+
         {error === "config" && (
           <div
             role="alert"
             className="mt-6 rounded-xl border border-error-500/30 bg-error-500/10 px-4 py-3 text-sm leading-6 text-error-300"
           >
-            Secret sesi admin belum tersedia. Pastikan ORDER_SESSION_SECRET atau
-            ADMIN_SESSION_SECRET sudah diatur di Vercel.
+            Konfigurasi keamanan admin belum tersedia. Pastikan secret sesi dan
+            koneksi Supabase backend sudah aktif pada environment deployment.
           </div>
         )}
 
@@ -98,6 +113,7 @@ export default async function AdminLoginPage({
             name="password"
             type="password"
             required
+            maxLength={256}
             autoComplete="current-password"
             autoFocus
             className="mt-2 h-12 w-full rounded-xl border border-brand-500/20 bg-black/25 px-4 text-white outline-none transition placeholder:text-gray-600 focus:border-brand-400 focus:ring-4 focus:ring-brand-500/10"
