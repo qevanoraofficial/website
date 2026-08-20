@@ -20,6 +20,12 @@ type AdminCredential = {
   password_hash: string;
 };
 
+export type AdminLoginRateStatus = {
+  allowed: boolean;
+  retryAfterSeconds: number;
+  failureCount: number;
+};
+
 function getSessionSecret(): string {
   const secret =
     process.env.ADMIN_SESSION_SECRET || process.env.ORDER_SESSION_SECRET || "";
@@ -27,6 +33,22 @@ function getSessionSecret(): string {
   if (secret.length < 32) {
     throw new Error(
       "ADMIN_SESSION_SECRET atau ORDER_SESSION_SECRET wajib minimal 32 karakter.",
+    );
+  }
+
+  return secret;
+}
+
+function getRateLimitSecret(): string {
+  const secret =
+    process.env.ADMIN_RATE_LIMIT_SECRET ||
+    process.env.ADMIN_SESSION_SECRET ||
+    process.env.ORDER_SESSION_SECRET ||
+    "";
+
+  if (secret.length < 32) {
+    throw new Error(
+      "ADMIN_RATE_LIMIT_SECRET, ADMIN_SESSION_SECRET, atau ORDER_SESSION_SECRET wajib minimal 32 karakter.",
     );
   }
 
@@ -47,6 +69,35 @@ function safeEqual(first: string, second: string): boolean {
     firstBuffer.length === secondBuffer.length &&
     timingSafeEqual(firstBuffer, secondBuffer)
   );
+}
+
+function clientAddress(request: Request): string {
+  const cloudflareIp = String(request.headers.get("cf-connecting-ip") || "").trim();
+  if (cloudflareIp) return cloudflareIp.slice(0, 128);
+
+  const realIp = String(request.headers.get("x-real-ip") || "").trim();
+  if (realIp) return realIp.slice(0, 128);
+
+  const forwarded = String(request.headers.get("x-forwarded-for") || "")
+    .split(",")[0]
+    ?.trim();
+  if (forwarded) return forwarded.slice(0, 128);
+
+  return "unknown";
+}
+
+function normalizeRateRow(data: unknown): AdminLoginRateStatus {
+  const row = Array.isArray(data) ? data[0] : data;
+  const value = row && typeof row === "object" ? (row as Record<string, unknown>) : {};
+
+  return {
+    allowed: value.allowed !== false,
+    retryAfterSeconds: Math.max(
+      0,
+      Math.trunc(Number(value.retry_after_seconds || 0)) || 0,
+    ),
+    failureCount: Math.max(0, Math.trunc(Number(value.failure_count || 0)) || 0),
+  };
 }
 
 async function getAdminCredential(): Promise<AdminCredential> {
@@ -72,6 +123,45 @@ async function getAdminCredential(): Promise<AdminCredential> {
     password_salt: passwordSalt,
     password_hash: passwordHash,
   };
+}
+
+export function createAdminLoginRateKey(request: Request): string {
+  return createHmac("sha256", getRateLimitSecret())
+    .update(`admin-login-v1:${clientAddress(request)}`)
+    .digest("hex");
+}
+
+export async function getAdminLoginRateStatus(
+  rateKey: string,
+): Promise<AdminLoginRateStatus> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc(
+    "service_admin_login_rate_status_v1",
+    { p_key_hash: rateKey },
+  );
+
+  if (error) {
+    throw new Error("Status rate limit admin tidak tersedia.");
+  }
+
+  return normalizeRateRow(data);
+}
+
+export async function recordAdminLoginAttempt(
+  rateKey: string,
+  success: boolean,
+): Promise<AdminLoginRateStatus> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc(
+    "service_admin_login_rate_record_v1",
+    { p_key_hash: rateKey, p_success: success },
+  );
+
+  if (error) {
+    throw new Error("Pencatatan rate limit admin gagal.");
+  }
+
+  return normalizeRateRow(data);
 }
 
 export async function verifyAdminPassword(password: string): Promise<boolean> {
