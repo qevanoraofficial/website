@@ -68,6 +68,26 @@ function badge(name: string) {
   return name.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || "OTP";
 }
 
+function serviceIcon(name: string): string | null {
+  const value = name.toLowerCase();
+  if (value.includes("whatsapp")) return "/images/smscode/whatsapp.svg";
+  if (value.includes("telegram")) return "/images/smscode/telegram.svg";
+
+  const googleServices = [
+    "googlevoice",
+    "google voice",
+    "google / youtube / gmail",
+    "google chat",
+    "google messenger",
+  ];
+
+  if (googleServices.some((service) => value.includes(service))) {
+    return "/images/smscode/google.svg";
+  }
+
+  return null;
+}
+
 const QUICK = ["", "WhatsApp", "Telegram", "TikTok", "Discord", "OpenAI", "Instagram", "Google"];
 
 export default function SMSCodeCatalogCheckout() {
@@ -232,10 +252,10 @@ export default function SMSCodeCatalogCheckout() {
           {products.map((product) => (
             <article key={`${product.catalogProductId}:${product.countryId}`} className="flex flex-col rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
               <div className="flex items-start gap-3">
-                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${(product.serviceName.toLowerCase().includes("whatsapp") || product.serviceName.toLowerCase().includes("telegram")) ? "bg-white shadow-sm ring-1 ring-gray-200/80 dark:bg-white/[0.08] dark:ring-white/10" : "bg-brand-500/10 text-sm font-black text-brand-500"}`}>
-                  {(product.serviceName.toLowerCase().includes("whatsapp") || product.serviceName.toLowerCase().includes("telegram")) ? (
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${serviceIcon(product.serviceName) ? "bg-white shadow-sm ring-1 ring-gray-200/80 dark:bg-white/[0.08] dark:ring-white/10" : "bg-brand-500/10 text-sm font-black text-brand-500"}`}>
+                  {serviceIcon(product.serviceName) ? (
                     <img
-                      src={product.serviceName.toLowerCase().includes("whatsapp") ? "/images/smscode/whatsapp.svg" : "/images/smscode/telegram.svg"}
+                      src={serviceIcon(product.serviceName) || ""}
                       alt=""
                       aria-hidden="true"
                       className="h-7 w-7 object-contain"
