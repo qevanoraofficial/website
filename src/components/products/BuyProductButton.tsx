@@ -47,6 +47,10 @@ export default function BuyProductButton({
 }: BuyProductButtonProps) {
   const router = useRouter();
   const isFollow = supplier === "follow";
+  const normalizedCategoryName = categoryName.trim().toLowerCase();
+  const isManualCategory =
+    normalizedCategoryName === "layanan digital" ||
+    normalizedCategoryName === "sosmed facebook";
   const isPanelCheckout = Boolean(panelPlan);
   const cleanPanelUsername = String(panelUsername || "").trim();
   const minQty = Math.max(1, Math.trunc(Number(minQuantity || 1)));
@@ -91,6 +95,13 @@ export default function BuyProductButton({
       return;
     }
 
+    if (isManualCategory) {
+      setBalance(0);
+      setModalError("");
+      setIsOpen(true);
+      return;
+    }
+
     const { data: wallet } = await supabase
       .from("wallets")
       .select("balance")
@@ -105,6 +116,10 @@ export default function BuyProductButton({
   const submitOrder = async (paymentMethod: PaymentMethod) => {
     if (isSending) return;
 
+    const effectivePaymentMethod: PaymentMethod = isManualCategory
+      ? "manual"
+      : paymentMethod;
+
     if (isFollow) {
       if (!target.trim()) {
         setModalError("Masukkan link atau username target terlebih dahulu.");
@@ -114,13 +129,13 @@ export default function BuyProductButton({
         setModalError(`Jumlah harus antara ${minQty.toLocaleString("id-ID")} sampai ${maxQty.toLocaleString("id-ID")}.`);
         return;
       }
-      if (paymentMethod !== "wallet") {
+      if (effectivePaymentMethod !== "wallet") {
         setModalError("Layanan ini hanya dapat dibayar dengan Saldo QEVANORA.");
         return;
       }
     }
 
-    if (paymentMethod === "wallet" && balance < totalPrice) {
+    if (effectivePaymentMethod === "wallet" && balance < totalPrice) {
       setModalError(`Saldo tidak cukup. Kamu butuh ${formatRupiah(totalPrice - balance)} lagi.`);
       return;
     }
@@ -134,7 +149,7 @@ export default function BuyProductButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productId,
-          paymentMethod,
+          paymentMethod: effectivePaymentMethod,
           ...(isFollow ? { target: target.trim(), quantity } : {}),
           ...(isPanelCheckout ? { panelPlan, panelUsername: cleanPanelUsername } : {}),
         }),
@@ -201,7 +216,13 @@ export default function BuyProductButton({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-500">Pembayaran QEVANORA</p>
-                <h3 className="mt-2 text-xl font-bold text-gray-800 dark:text-white">{isFollow ? "Detail Order Followers" : "Pilih metode pembayaran"}</h3>
+                <h3 className="mt-2 text-xl font-bold text-gray-800 dark:text-white">
+                  {isFollow
+                    ? "Detail Order Followers"
+                    : isManualCategory
+                      ? "Konfirmasi Order Manual"
+                      : "Pilih metode pembayaran"}
+                </h3>
               </div>
               <button type="button" onClick={() => !isSending && setIsOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-lg text-gray-500 dark:border-gray-700 dark:text-gray-300">×</button>
             </div>
@@ -228,18 +249,32 @@ export default function BuyProductButton({
               </div>
             </div>
 
-            <button type="button" onClick={() => void submitOrder("wallet")} disabled={isSending || balance < totalPrice} className="mt-4 w-full rounded-2xl border border-brand-500/25 bg-brand-500/[0.06] p-4 text-left transition hover:border-brand-500/50 disabled:cursor-not-allowed disabled:opacity-55">
-              <div className="flex items-center justify-between gap-3">
-                <div><p className="font-semibold text-gray-800 dark:text-white/90">💰 Saldo QEVANORA</p><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Saldo kamu: {formatRupiah(balance)}</p></div>
-                <span className="text-sm font-bold text-brand-500">Bayar</span>
-              </div>
-            </button>
+            {!isManualCategory && (
+              <>
+                <button type="button" onClick={() => void submitOrder("wallet")} disabled={isSending || balance < totalPrice} className="mt-4 w-full rounded-2xl border border-brand-500/25 bg-brand-500/[0.06] p-4 text-left transition hover:border-brand-500/50 disabled:cursor-not-allowed disabled:opacity-55">
+                  <div className="flex items-center justify-between gap-3">
+                    <div><p className="font-semibold text-gray-800 dark:text-white/90">💰 Saldo QEVANORA</p><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Saldo kamu: {formatRupiah(balance)}</p></div>
+                    <span className="text-sm font-bold text-brand-500">Bayar</span>
+                  </div>
+                </button>
 
-            {balance < totalPrice && <p className="mt-2 text-xs leading-5 text-error-500">Saldo kurang {formatRupiah(totalPrice - balance)}. <Link href="/profile#wallet-center" className="font-semibold underline">Top up saldo</Link> dulu.</p>}
+                {balance < totalPrice && <p className="mt-2 text-xs leading-5 text-error-500">Saldo kurang {formatRupiah(totalPrice - balance)}. <Link href="/profile#wallet-center" className="font-semibold underline">Top up saldo</Link> dulu.</p>}
+              </>
+            )}
 
             {!isFollow && (
-              <button type="button" onClick={() => void submitOrder("manual")} disabled={isSending} className="mt-3 w-full rounded-2xl border border-gray-200 p-4 text-left transition hover:border-brand-500/35 dark:border-gray-800">
-                <div className="flex items-center justify-between gap-3"><div><p className="font-semibold text-gray-800 dark:text-white/90">🧾 Konfirmasi Admin</p><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Order dibuat tanpa memotong saldo. Pembayaran dikonfirmasi manual.</p></div><span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Manual</span></div>
+              <button type="button" onClick={() => void submitOrder("manual")} disabled={isSending} className={`${isManualCategory ? "mt-4" : "mt-3"} w-full rounded-2xl border border-gray-200 p-4 text-left transition hover:border-brand-500/35 dark:border-gray-800`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-gray-800 dark:text-white/90">🧾 Konfirmasi Admin</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {isManualCategory
+                        ? "Order dikirim ke admin tanpa memotong Saldo QEVANORA. Produk diproses manual."
+                        : "Order dibuat tanpa memotong saldo. Pembayaran dikonfirmasi manual."}
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Manual</span>
+                </div>
               </button>
             )}
 
