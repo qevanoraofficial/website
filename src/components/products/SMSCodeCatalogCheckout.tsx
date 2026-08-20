@@ -60,8 +60,11 @@ function badge(name: string) {
   const value = name.toLowerCase();
   if (value.includes("whatsapp")) return "WA";
   if (value.includes("telegram")) return "TG";
-  if (value.includes("instagram")) return "IG";
-  if (value.includes("tiktok")) return "TT";
+  if (value.includes("instagram") || value.includes("threads")) return "IG";
+  if (value.includes("facebook")) return "FB";
+  if (value.includes("tiktok") || value.includes("douyin")) return "TT";
+  if (value.includes("shopee")) return "SH";
+  if (value.includes("tinder")) return "TI";
   if (value.includes("discord")) return "DC";
   if (value.includes("openai") || value.includes("chatgpt")) return "AI";
   if (value.includes("google")) return "G";
@@ -72,6 +75,11 @@ function serviceIcon(name: string): string | null {
   const value = name.toLowerCase();
   if (value.includes("whatsapp")) return "/images/smscode/whatsapp.svg";
   if (value.includes("telegram")) return "/images/smscode/telegram.svg";
+  if (value.includes("instagram") || value.includes("threads")) return "/images/smscode/instagram.svg";
+  if (value.includes("facebook")) return "/images/smscode/facebook.svg";
+  if (value.includes("tiktok") || value.includes("douyin")) return "/images/smscode/tiktok.svg";
+  if (value.includes("shopee")) return "/images/smscode/shopee.svg";
+  if (value.includes("tinder")) return "/images/smscode/tinder.svg";
 
   const googleServices = [
     "googlevoice",
