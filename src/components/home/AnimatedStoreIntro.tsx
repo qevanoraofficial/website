@@ -447,6 +447,55 @@ export default function AnimatedStoreIntro({
         </section>
       </Reveal>
 
+      <Reveal className="mt-5" delay={70}>
+        <aside
+          aria-labelledby="anti-phishing-title"
+          className="overflow-hidden rounded-2xl border border-brand-500/40 bg-brand-50/80 p-4 shadow-theme-xs dark:border-brand-400/30 dark:bg-brand-500/[0.08] sm:p-5"
+        >
+          <div className="flex items-start gap-3 sm:gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-brand-500/30 bg-white text-brand-600 dark:border-brand-400/25 dark:bg-white/[0.06] dark:text-brand-400">
+              <svg
+                aria-hidden="true"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 3 5 6v5c0 4.7 2.8 8 7 10 4.2-2 7-5.3 7-10V6l-7-3Z"
+                  stroke="currentColor"
+                  strokeLinejoin="round"
+                  strokeWidth="1.8"
+                />
+                <path
+                  d="M12 8v5m0 3h.01"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.8"
+                />
+              </svg>
+            </span>
+
+            <div className="min-w-0">
+              <p
+                id="anti-phishing-title"
+                className="text-sm font-bold uppercase tracking-[0.12em] text-brand-700 dark:text-brand-300"
+              >
+                Peringatan Anti-Phishing
+              </p>
+              <p className="mt-1.5 text-sm leading-6 text-gray-700 dark:text-gray-300">
+                Domain resmi QEVANORA hanya{" "}
+                <strong className="break-all font-bold text-gray-900 dark:text-white">
+                  qevanoraofficial.my.id
+                </strong>
+                . Kami tidak pernah meminta password, OTP, cookie login, atau
+                kode verifikasi akun pribadi.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </Reveal>
+
       <Reveal className="mt-5" delay={80}>
         <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {benefits.map((benefit, index) => (
