@@ -273,6 +273,36 @@ export default function AnimatedStoreIntro({
   initialProducts,
   initialTestimonials,
 }: AnimatedStoreIntroProps) {
+  const [websiteRating, setWebsiteRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+
+  useEffect(() => {
+    try {
+      const savedRating = Number(
+        window.localStorage.getItem("qevanora-website-rating"),
+      );
+
+      if (savedRating >= 1 && savedRating <= 5) {
+        setWebsiteRating(savedRating);
+      }
+    } catch {
+      // Local storage may be unavailable in privacy-restricted browsers.
+    }
+  }, []);
+
+  const saveWebsiteRating = (rating: number) => {
+    setWebsiteRating(rating);
+
+    try {
+      window.localStorage.setItem(
+        "qevanora-website-rating",
+        String(rating),
+      );
+    } catch {
+      // The selected rating still remains for the current page session.
+    }
+  };
+
   const products = useMemo(
     () =>
       initialProducts
@@ -449,7 +479,7 @@ export default function AnimatedStoreIntro({
 
       <Reveal className="mt-5" delay={70}>
         <aside
-          aria-labelledby="anti-phishing-title"
+          aria-label="Informasi keamanan QEVANORA"
           className="overflow-hidden rounded-2xl border border-brand-500/40 bg-brand-50/80 p-4 shadow-theme-xs dark:border-brand-400/30 dark:bg-brand-500/[0.08] sm:p-5"
         >
           <div className="flex items-start gap-3 sm:gap-4">
@@ -477,13 +507,7 @@ export default function AnimatedStoreIntro({
             </span>
 
             <div className="min-w-0">
-              <p
-                id="anti-phishing-title"
-                className="text-sm font-bold uppercase tracking-[0.12em] text-brand-700 dark:text-brand-300"
-              >
-                Peringatan Anti-Phishing
-              </p>
-              <p className="mt-1.5 text-sm leading-6 text-gray-700 dark:text-gray-300">
+              <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
                 Domain resmi QEVANORA hanya{" "}
                 <strong className="break-all font-bold text-gray-900 dark:text-white">
                   qevanoraofficial.my.id
@@ -726,28 +750,63 @@ export default function AnimatedStoreIntro({
       </Reveal>
 
       <Reveal className="mt-10" delay={180}>
-        <section className="qevanora-card rounded-3xl border p-6 sm:p-8">
-          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
-            <div className="max-w-2xl">
-              <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">
-                Butuh bantuan?
-              </p>
-              <h2 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
-                Tim QEVANORA OFFICIAL siap membantu kebutuhanmu.
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-gray-600 dark:text-gray-300">
-                Hubungi kontak resmi kami untuk pertanyaan produk, order, atau
-                bantuan transaksi.
-              </p>
-            </div>
+        <section
+          aria-labelledby="website-rating-title"
+          className="qevanora-card rounded-3xl border p-6 text-center sm:p-8"
+        >
+          <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">
+            Rating Website
+          </p>
+          <h2
+            id="website-rating-title"
+            className="mt-2 text-2xl font-bold text-gray-900 dark:text-white"
+          >
+            Bagaimana pengalamanmu?
+          </h2>
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-gray-600 dark:text-gray-300">
+            Berikan rating untuk website QEVANORA OFFICIAL.
+          </p>
 
-            <Link
-              href="/support"
-              className="qevanora-gold-button inline-flex shrink-0 items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition"
-            >
-              Hubungi Support
-            </Link>
+          <div
+            aria-label="Pilih rating website"
+            className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3"
+            role="group"
+          >
+            {[1, 2, 3, 4, 5].map((star) => {
+              const isActive =
+                star <= (hoveredRating || websiteRating);
+
+              return (
+                <button
+                  key={star}
+                  aria-label={`${star} bintang`}
+                  aria-pressed={websiteRating === star}
+                  className={`flex h-12 w-12 items-center justify-center rounded-xl border text-3xl leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 ${
+                    isActive
+                      ? "border-brand-400 bg-brand-50 text-[#d6a62f] shadow-theme-xs dark:border-brand-400/50 dark:bg-brand-500/10 dark:text-[#f7d56e]"
+                      : "border-gray-200 bg-gray-50 text-gray-300 hover:border-brand-300 hover:text-brand-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600 dark:hover:border-brand-500/40 dark:hover:text-brand-400"
+                  }`}
+                  onBlur={() => setHoveredRating(0)}
+                  onClick={() => saveWebsiteRating(star)}
+                  onFocus={() => setHoveredRating(star)}
+                  onMouseEnter={() => setHoveredRating(star)}
+                  onMouseLeave={() => setHoveredRating(0)}
+                  type="button"
+                >
+                  <span aria-hidden="true">★</span>
+                </button>
+              );
+            })}
           </div>
+
+          <p
+            aria-live="polite"
+            className="mt-4 min-h-6 text-sm font-medium text-gray-500 dark:text-gray-400"
+          >
+            {websiteRating
+              ? `Terima kasih! Kamu memberi rating ${websiteRating} dari 5.`
+              : "Pilih jumlah bintang sesuai pengalamanmu."}
+          </p>
         </section>
       </Reveal>
 
