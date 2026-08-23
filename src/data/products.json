@@ -1,21 +1,5 @@
 [
   {
-    "id": "prd_mt5ad3jr_a8d542",
-    "category": "apk-premium",
-    "categoryName": "Apk Premium",
-    "name": "VIU PREMIUM LIFETIME",
-    "shortDescription": "Viu premium lifetime, Bergaransi 1 Tahun. Produk By Qevanora Official",
-    "fullDescription": "✅ Akses Viu Premium tanpa batas waktu (tidak perlu bayar bulanan lagi selama akun tetap aktif sesuai ketentuan penjual/platform).\r\n✅ Bebas iklan saat menonton. �\r\nViu\r\n✅ Akses semua konten Premium seperti drama Korea, drama Asia, film, variety show, dan Viu Original yang terkunci untuk pengguna gratis. �\r\nViu\r\n✅ Kualitas video HD (tergantung perangkat dan ketersediaan konten). �\r\nViu\r\n✅ Bisa download episode untuk ditonton offline. �\r\nViu\r\n✅ Lebih hemat kalau sering nonton, karena tidak perlu memperpanjang paket bulanan/tahunan.\r\n\r\nOrder di lakukan secara manual melalui admin , harap periksa ketersediaan produk terlebih dahulu sebelum mebeli🙏",
-    "description": "Viu premium lifetime, Bergaransi 1 Tahun. Produk By Qevanora Official",
-    "price": 55000,
-    "stock": 1,
-    "active": true,
-    "imagePath": "storage/products/prd_mt5ad3jr_a8d542.png",
-    "image": "/api/media?path=storage%2Fproducts%2Fprd_mt5ad3jr_a8d542.png",
-    "createdAt": "2026-08-23T04:07:16.023Z",
-    "updatedAt": "2026-08-23T04:07:16.023Z"
-  },
-  {
     "id": "prd_mstulz0a_6c5a2b",
     "category": "pterodactyl-panel",
     "categoryName": "Pterodactyl Panel",
