@@ -8,7 +8,7 @@ export type ProductCategory = {
 };
 
 const pinnedProductCategories: ProductCategory[] = [
-  { slug: "sosmed-facebook", name: "Sosmed Facebook" },
+  { slug: "sosmed-facebook", name: "Account Sosmed" },
   { slug: "nokos", name: "Nokos" },
   { slug: "layanan-digital", name: "Layanan Digital" },
 ];
