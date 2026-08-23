@@ -84,6 +84,17 @@ function shortText(product: Product): string {
   return text || "Produk digital pilihan dari QEVANORA OFFICIAL.";
 }
 
+function getCustomerInitials(name: string | undefined): string {
+  const initials = String(name || "Pelanggan")
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("");
+
+  return initials || "Q";
+}
+
 function IconBox({ children }: { children: ReactNode }) {
   return (
     <span className="qevanora-icon-box flex h-12 w-12 shrink-0 items-center justify-center rounded-xl">
@@ -273,36 +284,6 @@ export default function AnimatedStoreIntro({
   initialProducts,
   initialTestimonials,
 }: AnimatedStoreIntroProps) {
-  const [websiteRating, setWebsiteRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
-
-  useEffect(() => {
-    try {
-      const savedRating = Number(
-        window.localStorage.getItem("qevanora-website-rating"),
-      );
-
-      if (savedRating >= 1 && savedRating <= 5) {
-        setWebsiteRating(savedRating);
-      }
-    } catch {
-      // Local storage may be unavailable in privacy-restricted browsers.
-    }
-  }, []);
-
-  const saveWebsiteRating = (rating: number) => {
-    setWebsiteRating(rating);
-
-    try {
-      window.localStorage.setItem(
-        "qevanora-website-rating",
-        String(rating),
-      );
-    } catch {
-      // The selected rating still remains for the current page session.
-    }
-  };
-
   const products = useMemo(
     () =>
       initialProducts
@@ -356,6 +337,36 @@ export default function AnimatedStoreIntro({
           to { transform: translate3d(-50%, 0, 0); }
         }
 
+        @keyframes qevanoraReviewScrollLeft {
+          from { transform: translate3d(0, 0, 0); }
+          to { transform: translate3d(-50%, 0, 0); }
+        }
+
+        .qevanora-review-viewport {
+          overflow-x: auto;
+          overscroll-behavior-inline: contain;
+          scrollbar-width: none;
+          touch-action: pan-x;
+        }
+
+        .qevanora-review-viewport::-webkit-scrollbar {
+          display: none;
+        }
+
+        .qevanora-review-track {
+          display: flex;
+          width: max-content;
+          max-width: none;
+          animation: qevanoraReviewScrollLeft 26s linear infinite;
+          will-change: transform;
+        }
+
+        .qevanora-review-viewport:hover .qevanora-review-track,
+        .qevanora-review-viewport:active .qevanora-review-track,
+        .qevanora-review-viewport:focus-within .qevanora-review-track {
+          animation-play-state: paused;
+        }
+
         .qevanora-marquee-track,
         .qevanora-trust-track {
           display: flex;
@@ -371,6 +382,10 @@ export default function AnimatedStoreIntro({
           .qevanora-marquee-track,
           .qevanora-trust-track {
             animation-duration: 60s;
+          }
+
+          .qevanora-review-track {
+            animation: none;
           }
         }
       `}</style>
@@ -750,63 +765,79 @@ export default function AnimatedStoreIntro({
       </Reveal>
 
       <Reveal className="mt-10" delay={180}>
-        <section
-          aria-labelledby="website-rating-title"
-          className="qevanora-card rounded-3xl border p-6 text-center sm:p-8"
-        >
-          <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">
-            Rating Website
-          </p>
-          <h2
-            id="website-rating-title"
-            className="mt-2 text-2xl font-bold text-gray-900 dark:text-white"
-          >
-            Bagaimana pengalamanmu?
-          </h2>
-          <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-gray-600 dark:text-gray-300">
-            Berikan rating untuk website QEVANORA OFFICIAL.
-          </p>
-
-          <div
-            aria-label="Pilih rating website"
-            className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3"
-            role="group"
-          >
-            {[1, 2, 3, 4, 5].map((star) => {
-              const isActive =
-                star <= (hoveredRating || websiteRating);
-
-              return (
-                <button
-                  key={star}
-                  aria-label={`${star} bintang`}
-                  aria-pressed={websiteRating === star}
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl border text-3xl leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900 ${
-                    isActive
-                      ? "border-brand-400 bg-brand-50 text-[#d6a62f] shadow-theme-xs dark:border-brand-400/50 dark:bg-brand-500/10 dark:text-[#f7d56e]"
-                      : "border-gray-200 bg-gray-50 text-gray-300 hover:border-brand-300 hover:text-brand-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600 dark:hover:border-brand-500/40 dark:hover:text-brand-400"
-                  }`}
-                  onBlur={() => setHoveredRating(0)}
-                  onClick={() => saveWebsiteRating(star)}
-                  onFocus={() => setHoveredRating(star)}
-                  onMouseEnter={() => setHoveredRating(star)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  type="button"
-                >
-                  <span aria-hidden="true">★</span>
-                </button>
-              );
-            })}
+        <section aria-labelledby="customer-reviews-title">
+          <div className="text-center">
+            <p className="text-sm font-semibold text-brand-600 dark:text-brand-400">
+              Ulasan Pelanggan
+            </p>
+            <h2
+              id="customer-reviews-title"
+              className="mt-2 text-2xl font-bold text-gray-900 dark:text-white"
+            >
+              Dipercaya pelanggan QEVANORA
+            </h2>
+            <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-gray-600 dark:text-gray-300">
+              Transaksi sukses dari pelanggan yang telah berbelanja di QEVANORA OFFICIAL.
+            </p>
           </div>
 
-          <p
-            aria-live="polite"
-            className="mt-4 min-h-6 text-sm font-medium text-gray-500 dark:text-gray-400"
-          >
-            {websiteRating
-              ? `Terima kasih! Kamu memberi rating ${websiteRating} dari 5.`
-              : "Pilih jumlah bintang sesuai pengalamanmu."}
-          </p>
+          {testimonials.length > 0 ? (
+            <div
+              aria-label="Ulasan pelanggan bergerak otomatis. Sentuh atau arahkan pointer untuk menjeda."
+              className="qevanora-review-viewport mt-6 w-full"
+              tabIndex={0}
+            >
+              <div className="qevanora-review-track">
+                {["primary", "duplicate"].map((sequence) => (
+                  <div
+                    key={sequence}
+                    aria-hidden={sequence === "duplicate" ? true : undefined}
+                    className="flex shrink-0 gap-4 pr-4"
+                  >
+                    {testimonials.slice(0, 8).map((testimonial, index) => (
+                      <article
+                        key={`${sequence}-${testimonial.id || `${testimonial.name}-${index}`}`}
+                        className="qevanora-card flex min-h-52 w-[82vw] max-w-[320px] shrink-0 flex-col rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.04] sm:w-[300px]"
+                      >
+                        <div
+                          aria-label="5 dari 5 bintang"
+                          className="flex gap-1 text-lg leading-none text-[#f5b800]"
+                        >
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span key={star} aria-hidden="true">
+                              ★
+                            </span>
+                          ))}
+                        </div>
+
+                        <p className="mt-4 line-clamp-2 text-sm font-medium leading-6 text-gray-700 dark:text-gray-200">
+                          Transaksi berhasil dan pesanan telah diproses.
+                        </p>
+
+                        <div className="mt-auto flex items-center gap-3 pt-6">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
+                            {getCustomerInitials(testimonial.name)}
+                          </span>
+                          <span className="min-w-0 text-left">
+                            <strong className="block truncate text-sm font-semibold text-gray-900 dark:text-white">
+                              {testimonial.name}
+                            </strong>
+                            <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
+                              {testimonial.productName}
+                            </span>
+                          </span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="qevanora-card mt-6 rounded-2xl border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+              Ulasan pelanggan akan tampil otomatis setelah ada transaksi sukses.
+            </div>
+          )}
         </section>
       </Reveal>
 
