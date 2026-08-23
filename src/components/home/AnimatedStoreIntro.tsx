@@ -508,8 +508,8 @@ export default function AnimatedStoreIntro({
       {categories.length > 0 && (
         <Reveal className="mt-10" delay={120}>
           <section className="qevanora-card rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
+            <div className="flex min-w-0 flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="shrink-0">
                 <p className="text-sm font-semibold text-brand-500">
                   Kategori produk
                 </p>
@@ -518,12 +518,17 @@ export default function AnimatedStoreIntro({
                 </h2>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div
+                aria-label="Kategori produk"
+                className="flex w-full min-w-0 flex-1 snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain pb-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                role="navigation"
+                tabIndex={0}
+              >
                 {categories.map((category) => (
                   <Link
                     key={category.slug}
                     href={`/products/${category.slug}`}
-                    className="rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10 dark:hover:text-brand-400"
+                    className="shrink-0 snap-start whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-500/40 dark:hover:bg-brand-500/10 dark:hover:text-brand-400 dark:focus-visible:ring-offset-gray-900"
                   >
                     {category.name}
                   </Link>
