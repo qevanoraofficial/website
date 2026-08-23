@@ -39,6 +39,12 @@ type CatalogResponse = {
   products?: Product[];
 };
 
+const SIDEBAR_CATEGORY_PRIORITY: Record<string, number> = {
+  nokos: 0,
+  "sosmed-facebook": 1,
+  "layanan-digital": 2,
+};
+
 const otherItems: NavItem[] = [
   {
     icon: <ProfileAccountIcon />,
@@ -107,11 +113,19 @@ export default function AppSidebar() {
       {
         icon: <ProductIcon />,
         name: "ᴘʀᴏᴅᴜᴋ",
-        subItems: categories.map((category) => ({
-          name: category.name,
-          path: `/products/${category.slug}`,
-          icon: <ProductCategoryIcon />,
-        })),
+        subItems: [...categories]
+          .sort(
+            (first, second) =>
+              (SIDEBAR_CATEGORY_PRIORITY[first.slug] ??
+                Number.MAX_SAFE_INTEGER) -
+              (SIDEBAR_CATEGORY_PRIORITY[second.slug] ??
+                Number.MAX_SAFE_INTEGER),
+          )
+          .map((category) => ({
+            name: category.name,
+            path: `/products/${category.slug}`,
+            icon: <ProductCategoryIcon />,
+          })),
       },
       {
         icon: <TestimonialIcon />,
