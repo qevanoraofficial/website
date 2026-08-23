@@ -42,7 +42,7 @@ function normalizeProduct(value: Product): Product {
   return {
     id: text(value.id, 100),
     category: text(value.category, 100),
-    categoryName: text(value.categoryName, 120),
+    categoryName:\n      text(value.category, 100) === "sosmed-facebook"\n        ? "Account Sosmed"\n        : text(value.categoryName, 120),
     name: text(value.name, 160),
     shortDescription: text(
       value.shortDescription || value.description,
