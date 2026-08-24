@@ -124,5 +124,12 @@
     "guests": 12,
     "members": 4,
     "updatedAt": "2026-08-24T14:44:26.819Z"
+  },
+  {
+    "date": "2026-08-25",
+    "visitors": 1,
+    "guests": 1,
+    "members": 0,
+    "updatedAt": "2026-08-24T17:08:17.510Z"
   }
 ]
