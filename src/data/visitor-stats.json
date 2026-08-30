@@ -159,5 +159,12 @@
     "guests": 3,
     "members": 0,
     "updatedAt": "2026-08-29T14:30:51.780Z"
+  },
+  {
+    "date": "2026-08-30",
+    "visitors": 1,
+    "guests": 1,
+    "members": 0,
+    "updatedAt": "2026-08-30T03:24:18.582Z"
   }
 ]
