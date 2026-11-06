@@ -383,5 +383,12 @@
     "guests": 4,
     "members": 0,
     "updatedAt": "2026-11-04T14:56:14.376Z"
+  },
+  {
+    "date": "2026-11-06",
+    "visitors": 1,
+    "guests": 1,
+    "members": 0,
+    "updatedAt": "2026-11-06T05:25:55.832Z"
   }
 ]
